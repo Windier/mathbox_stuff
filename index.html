@@ -1,1 +1,424 @@
-Hello World
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>MathBox - Vector</title>
+  <script src="http://acko.net/mathbox2/0.0.5/mathbox-bundle.min.js"></script>
+  <script src="http://pastebin.com/raw/1vbC70iD"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.min.js"></script>
+  <link rel="stylesheet" href="https://gitgud.io/unconed/mathbox/raw/master/build/mathbox.css">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1">
+  <style>
+      #gui { position: absolute; top: 50px; left: 0px }
+  </style>
+</head>
+<body>
+	<script>
+
+		mathbox = mathBox({
+			plugins: ['core', 'controls', 'cursor','stats'],
+			controls: {
+				klass: THREE.OrbitControls
+			},
+			camera: {
+				fov: 20,
+			},
+		});
+		three = mathbox.three;
+
+		three.camera.position.set(5, 5, 8);
+		three.renderer.setClearColor(new THREE.Color(0xFFFFFF), 1.0);
+
+// GUI
+		var text = new Text();
+		var gui = new dat.GUI();
+		gui.domElement.id = 'gui';
+		var props = {
+			// P : 'Math.sin(x)',
+			// Q : 'y*Math.cos(x)',
+			// R : 'Math.cos(t+z)',
+			c : 3.0,
+			contour_scale : 0.61,
+			scale : 0.40,
+			axis : 1
+		};
+		// gui.add(props, 'P');
+		// gui.add(props, 'Q');
+		// gui.add(props, 'R');
+		// gui.add(props, 'c').min(-2).max(2).step(0.001);
+		gui.add(props, 'c').min(-π).max(π).step(0.001);
+		gui.add(props, 'contour_scale').min(0).max(1).step(0.001);
+		gui.add(props, 'scale').min(0).max(0.5).step(0.001);
+		gui.add(props, 'axis', { x: 1, y: 2, z: 3 } );
+
+		view = mathbox
+
+		.set('focus', 6)
+
+		.cartesian({
+			range: [[-π, π], [-π, π], [-π, π]],
+			scale: [1, 1, 1],
+			rotation: [-π/2,0,-π/2]
+		})
+
+		.axis({
+			axis : 1,
+			color: 'rgb(255, 0, 0)',
+			range:[0,1],
+			detail: 100,
+			end : true,
+			zBias: 0,
+			opacity: 0.5,
+		})
+
+		.axis({
+			axis : 2,
+			color: 'rgb(0, 255, 0)',
+			range:[0,1],
+			detail: 100,
+			end : true,
+			zBias: 0,
+			opacity: 0.5,
+		}) 
+
+		.axis({
+			axis : 3,
+			color: 'rgb(0, 0, 255)',
+			range:[0,1],
+			detail: 100,
+			end : true,
+			zBias: 0,
+			opacity: 0.5,
+		})
+
+		// .scale({
+		//   divide: 10,
+		// })
+
+		// .ticks({
+		//   classes: ['foo', 'bar'],
+		//   width: 1,
+		//   opacity: 0.0
+		// })
+
+		// .grid({
+		//   axes: [1,2],
+		//   width: 1,
+		//   opacity: 0.7,
+		//   zBias: -10,
+		// });
+ 
+		var field = function(x,y,z,t){
+	    P = Math.cos(x-z)+x/5;
+	    Q = Math.cos(y+z)+y/5;
+	    R = Math.cos(z+x)-z/5;
+			n =Math.hypot(P,Q,R);
+			return [P,Q,R,n]
+		};
+
+		var SIZE = 100;
+		var SIZEX = (props.axis === 1) ? 0: SIZE;
+		var SIZEY = (props.axis === 2) ? 0: SIZE;
+		var SIZEZ = (props.axis === 3) ? 0: SIZE;
+
+// Divergent_color
+
+		var divergent = view
+		.area({
+			id: 'divergent_color',
+			expr: function (emit, u, v, t){
+				var clamp = function(a,b,c)
+				{
+					return Math.max(b,Math.min(c,a));
+				};
+				var c = props.c;
+				var axis = props.axis;
+				//  Derivative step
+				var h = 0.001;
+				var contour_scale = props.contour_scale;
+
+				if(axis == 1){
+
+					f = field(c,u,v,t);
+
+					Q_old = f[1];
+					Q = field(c,u+h,v,t)[1];
+					dQ_dz = (Q - Q_old)/h;
+
+					R_old = field(c,u,v,t)[2];
+					R = field(c,u,v+h,t)[2];
+					dR_dy = (R - R_old)/h;
+
+					div = (dR_dy + dQ_dz);
+
+				}
+				else if(axis == 2){
+
+					f = field(u,c,v,t);
+
+					P_old = f[0];
+					P = field(u+h,c,v,t)[0];
+					dP_dz = (P - P_old)/h;	
+
+					R_old = field(u,c,v,t)[2];
+					R = field(u,c,v+h,t)[2];
+					dR_dx = (R - R_old)/h;
+
+					div = (dR_dx + dP_dz);
+				}
+				else{
+
+					f = field(u,v,c,t);
+
+					P_old = f[0];
+					P = field(u+h,v,c,t)[0];
+					dP_dy = (P - P_old)/h;
+		
+					Q_old = f[1];
+					Q = field(u,v+h,c,t)[1];
+					dQ_dx = (Q - Q_old)/h;
+
+					div = (dQ_dx + dP_dy);
+				};      
+				// Corresponds to green (div F = 0)     
+				H_mid = 120;
+				// The HUE is shifted from the mid (lower -> blue; higher -> red)
+				H = H_mid*div*contour_scale+H_mid;
+
+				rgb = HSVtoRGB(clamp(H,0,290),100,100);
+
+				r = rgb[0];
+				g = rgb[1];
+				b = rgb[2];
+				a = 0.65
+				emit(r,g,b,a);
+
+			},
+			items: 1,
+			channels: 4,
+			width: SIZE,
+			height: SIZE,
+		});
+
+		// Contour plot surface in (u,v) coordinates
+		view
+		.transform({})
+		// rotate the shit out of this. i couldnt manage to use switch/case
+		.bind({
+			rotation : function(t){
+				var axis = props.axis;        
+				if(axis == 1){
+					angle = [0,π/2,π/2]
+				}
+				else if(axis == 2){
+					angle = [π/2,0,0]}
+				else{
+					angle = [0,0,0]
+				};
+				return angle
+			}
+		})
+		.area({
+			id: 'surface_points',
+			width: 2,
+			height: 2,
+			expr: function (emit, u, v, t){ 
+				var c = props.c;        
+				emit(u, v, c, t);
+			},
+			items: 1,
+			channels: 4,
+		})
+		.surface({
+			shaded: false,
+			points: '<',
+			map: '#divergent_color',
+			color: 0xFFFFFF,
+			width: 5,
+			zBias: -2,
+			opacity:0.75,
+		});
+
+
+		var proj_size = 16;
+		var steps_euler = 10;
+
+// Projected field on plane (u,v)
+		var projected_field = view
+		.transform({
+		})
+		// rotate the shit out of this. i couldnt manage to use switch/case
+		.bind({
+			rotation : function(t){
+				var axis = props.axis;        
+				if(axis == 1){
+					angle = [0,π/2,π/2]
+				}
+				else if(axis == 2){
+					angle = [π/2,0,0]}
+				else{
+					angle = [0,0,0]
+				};
+				return angle
+			},
+			position : function(t){
+				var c = props.c;
+				var axis = props.axis;
+				if(axis == 1){
+					return [c,0,0]
+				}
+				else if(axis == 2){
+					return [0,-c,0]
+				}
+				else{
+					return [0,0,c]
+				}
+			}
+		})
+		.area({
+			width: proj_size,
+			height: proj_size,
+			expr: function(emit, u, v, t){
+				var axis = props.axis;
+
+				if(axis == 1){
+
+			        for (var i = 0; i < steps_euler; ++i) {
+			            var scale = props.scale;
+			          	var c = props.c;
+			            var delta = scale * 1/steps_euler;
+			            f = field(c,u,v,t);
+			            emit(u, v);
+			            // euler step
+			            u += (f[1]/f[3])*delta;
+			            v += (f[2]/f[3])*delta;
+			          }	
+
+				}
+				else if(axis == 2){
+
+
+			        for (var i = 0; i < steps_euler; ++i) {
+			            var scale = props.scale;
+			          	var c = props.c;			            
+			            var delta = scale * 1/steps_euler;
+			            f = field(u,c,v,t);
+			            emit(u, v);
+			            // euler step
+			            u += (f[0]/f[3])*delta;
+			            v += (f[2]/f[3])*delta;
+			          }	
+		        
+				}
+				else{
+
+			        for (var i = 0; i < steps_euler; ++i) {
+			            var scale = props.scale;
+			          	var c = props.c;			            
+			            var delta = scale * 1/steps_euler;
+			            f = field(u,v,c,t);
+			            emit(u, v);
+			            // euler step
+			            u += (f[0]/f[3])*delta;
+			            v += (f[1]/f[3])*delta;
+			          }	
+
+				};
+
+			},
+			items: steps_euler,
+			channels: 2
+		})
+		.lerp({
+			items:64,
+			source:'<'
+		})
+		.vector({
+			end: true,
+			points: '<',
+			color: '#000000'
+
+		});
+
+//  Color
+  //   view
+  //   .volume({
+  //     id: 'field_color',
+  //     width: 12,
+  //     height: 12,
+  //     depth: 12,
+  //     expr: function (emit, x, y, z, i, j, k, t){
+  //       var c = props.c;
+  //       var axis = props.axis;
+  //       var axii = 0; 	
+  //       if(axis == 1){
+		//  	axii = x
+	 //    }
+		// else if(axis == 2){
+		//  	axii = -y
+		//  }
+		// else{
+		// 	axii = z
+		// };
+  //       var Heavistep = function(x,y){
+  //         if(x>=y)
+  //         {
+  //           return 1.0
+  //         }
+  //         else 
+  //         {
+  //           return 0.0
+  //         }
+  //       };
+  //       r = 0/255;
+  //       g = 0/255;
+  //       b = 0/255;
+		// emit (r,g,b,0.3)
+   
+  //     },
+  //     items: 1,
+  //     channels: 4,
+  //   });
+
+    var steps = 7;
+
+//  Original vector field
+    view
+    .volume({
+      width: 10,
+      height: 10,
+      depth: 10,
+      expr: function (emit, x, y, z, i, j, k, t){
+        var f;
+        var scale = props.scale;
+        for (var i = 0; i < steps; ++i) {
+            var scale = props.scale;
+            var delta = 0.67/steps;
+            f = field(x, y, z, t);
+            emit(x, y, z, t);
+            // euler step
+            x += f[0]*delta;
+            y += f[1]*delta;
+            z += f[2]*delta;
+          }
+      },
+      items: steps,
+      channels: 4,
+    })
+    .lerp({
+      items:64,
+      source: '<'
+    })
+    .vector({
+      end: true,
+      width: 1.5,
+      points: '<',
+      // colors: '#field_color',
+      color: 'rgb(0,0,0)',
+      opacity : 0.9,
+      zBias: -20,
+    })
+
+	</script>
+</body>
+</html>
