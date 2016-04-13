@@ -2,14 +2,14 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>MathBox - Vector</title>
+  <title>Dipole</title>
   <script src="http://acko.net/mathbox2/0.0.5/mathbox-bundle.min.js"></script>
   <script src="http://pastebin.com/raw/1vbC70iD"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.min.js"></script>
   <link rel="stylesheet" href="https://gitgud.io/unconed/mathbox/raw/master/build/mathbox.css">
   <meta name="viewport" content="initial-scale=1, maximum-scale=1">
   <style>
-      #gui { position: absolute; top: 50px; left: 0px }
+      #gui { position: absolute; top: 0px; left: 0px }
   </style>
 </head>
 <body>
@@ -45,7 +45,7 @@
     gui.add(props, 'time_scale').min(0.0).max(1.00).step(.001)
 
     mathbox = mathBox({
-      plugins: ['core', 'controls', 'cursor', 'stats'],
+      plugins: ['core', 'controls', 'cursor'],
       controls: {
         klass: THREE.OrbitControls
       },
