@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <title>MathBox - Vector</title>
-  <script src="http://acko.net/mathbox2/0.0.5/mathbox-bundle.min.js"></script>
-  <script src="http://pastebin.com/raw/1vbC70iD"></script>
+  <script src="https://acko.net/mathbox2/0.0.5/mathbox-bundle.min.js"></script>
+  <script src="https://pastebin.com/raw/1vbC70iD"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.min.js"></script>
-  <link rel="stylesheet" href="http://acko.net/mathbox2/0.0.5/mathbox.css">
+  <link rel="stylesheet" href="https://acko.net/mathbox2/0.0.5/mathbox.css">
   <meta name="viewport" content="initial-scale=1, maximum-scale=1">
   <style>
       #gui { position: absolute; top: 50px; left: 0px }
@@ -79,7 +79,7 @@
 			end : true,
 			zBias: 0,
 			opacity: 0.5,
-		}) 
+		})
 
 		.axis({
 			axis : 3,
@@ -107,7 +107,7 @@
 		//   opacity: 0.7,
 		//   zBias: -10,
 		// });
- 
+
 		var field = function(x,y,z,t){
 	    P = Math.cos(x-z)+x/5;
 	    Q = Math.cos(y+z)+y/5;
@@ -158,7 +158,7 @@
 
 					P_old = f[0];
 					P = field(u+h,c,v,t)[0];
-					dP_dz = (P - P_old)/h;	
+					dP_dz = (P - P_old)/h;
 
 					R_old = field(u,c,v,t)[2];
 					R = field(u,c,v+h,t)[2];
@@ -173,14 +173,14 @@
 					P_old = f[0];
 					P = field(u+h,v,c,t)[0];
 					dP_dy = (P - P_old)/h;
-		
+
 					Q_old = f[1];
 					Q = field(u,v+h,c,t)[1];
 					dQ_dx = (Q - Q_old)/h;
 
 					div = (dQ_dx + dP_dy);
-				};      
-				// Corresponds to green (div F = 0)     
+				};
+				// Corresponds to green (div F = 0)
 				H_mid = 120;
 				// The HUE is shifted from the mid (lower -> blue; higher -> red)
 				H = H_mid*div*contour_scale+H_mid;
@@ -206,7 +206,7 @@
 		// rotate the shit out of this. i couldnt manage to use switch/case
 		.bind({
 			rotation : function(t){
-				var axis = props.axis;        
+				var axis = props.axis;
 				if(axis == 1){
 					angle = [0,π/2,π/2]
 				}
@@ -222,8 +222,8 @@
 			id: 'surface_points',
 			width: 2,
 			height: 2,
-			expr: function (emit, u, v, t){ 
-				var c = props.c;        
+			expr: function (emit, u, v, t){
+				var c = props.c;
 				emit(u, v, c, t);
 			},
 			items: 1,
@@ -250,7 +250,7 @@
 		// rotate the shit out of this. i couldnt manage to use switch/case
 		.bind({
 			rotation : function(t){
-				var axis = props.axis;        
+				var axis = props.axis;
 				if(axis == 1){
 					angle = [0,π/2,π/2]
 				}
@@ -292,7 +292,7 @@
 			            // euler step
 			            u += (f[1]/f[3])*delta;
 			            v += (f[2]/f[3])*delta;
-			          }	
+			          }
 
 				}
 				else if(axis == 2){
@@ -300,28 +300,28 @@
 
 			        for (var i = 0; i < steps_euler; ++i) {
 			            var scale = props.scale;
-			          	var c = props.c;			            
+			          	var c = props.c;
 			            var delta = scale * 1/steps_euler;
 			            f = field(u,c,v,t);
 			            emit(u, v);
 			            // euler step
 			            u += (f[0]/f[3])*delta;
 			            v += (f[2]/f[3])*delta;
-			          }	
-		        
+			          }
+
 				}
 				else{
 
 			        for (var i = 0; i < steps_euler; ++i) {
 			            var scale = props.scale;
-			          	var c = props.c;			            
+			          	var c = props.c;
 			            var delta = scale * 1/steps_euler;
 			            f = field(u,v,c,t);
 			            emit(u, v);
 			            // euler step
 			            u += (f[0]/f[3])*delta;
 			            v += (f[1]/f[3])*delta;
-			          }	
+			          }
 
 				};
 
@@ -350,7 +350,7 @@
   //     expr: function (emit, x, y, z, i, j, k, t){
   //       var c = props.c;
   //       var axis = props.axis;
-  //       var axii = 0; 	
+  //       var axii = 0;
   //       if(axis == 1){
 		//  	axii = x
 	 //    }
@@ -365,7 +365,7 @@
   //         {
   //           return 1.0
   //         }
-  //         else 
+  //         else
   //         {
   //           return 0.0
   //         }
@@ -374,7 +374,7 @@
   //       g = 0/255;
   //       b = 0/255;
 		// emit (r,g,b,0.3)
-   
+
   //     },
   //     items: 1,
   //     channels: 4,

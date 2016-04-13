@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <title>MathBox - Vector</title>
-  <script src="http://acko.net/mathbox2/0.0.5/mathbox-bundle.min.js"></script>
-  <script src="http://pastebin.com/raw/1vbC70iD"></script>
+  <script src="https://acko.net/mathbox2/0.0.5/mathbox-bundle.min.js"></script>
+  <script src="https://pastebin.com/raw/1vbC70iD"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.min.js"></script>
   <link rel="stylesheet" href="https://gitgud.io/unconed/mathbox/raw/master/build/mathbox.css">
   <meta name="viewport" content="initial-scale=1, maximum-scale=1">
@@ -29,7 +29,7 @@
   vec4 getColor(vec4 rgba, inout vec4 stpq) {
 
     vec3 rgb = vec3(stpq.xyz);
-    
+
     return vec4(rgb, 1.0);
   }
   </script>
@@ -37,8 +37,8 @@
   <script type="application/glsl" id="mask-xyz">
   varying vec3 vNormal;
   float getMask(vec4 stpq) {
-    float intensity = 1.0; 
-    
+    float intensity = 1.0;
+
     return intensity;
   }
   </script>
@@ -86,7 +86,7 @@
     //   return a
     // });
 
-    
+
 
     view.axis({
       detail: 256,
@@ -162,7 +162,7 @@
             x += f[0]*delta;
             y += f[1]*delta;
             z += f[2]*delta;
-          } 
+          }
       },
       items: steps_euler,
       channels: 4,
@@ -182,7 +182,7 @@
     //     // Work in data XYZ instead of view XYZ
     //     pass: 'data'
     //   });
-      
+
     // xf =
     //   xf
     //   .shader({
@@ -206,7 +206,7 @@
       width: 1.0,
       end: true
     });
-  
+
   </script>
 </body>
 </html>
