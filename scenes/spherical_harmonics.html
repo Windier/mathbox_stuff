@@ -4,9 +4,8 @@
   <meta charset="utf-8">
   <title>MathBox - Vector</title>
   <script src="http://acko.net/mathbox2/0.0.5/mathbox-bundle.min.js"></script>
-  <script src="http://pastebin.com/raw/1vbC70iD"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.min.js"></script>
-  <link rel="stylesheet" href="https://gitgud.io/unconed/mathbox/raw/master/build/mathbox.css">
+  <link rel="stylesheet" href="http://acko.net/mathbox2/0.0.5/mathbox.css">
   <meta name="viewport" content="initial-scale=1, maximum-scale=1">
   <style>
       #gui { position: absolute; top: 50px; left: 0px }
@@ -21,7 +20,6 @@
   void getPosition(inout vec4 xyzw, inout vec4 stpq) {
     // Store XYZ per vertex in STPQ
     stpq = xyzw;
-    vNormal = normalize(cameraPosition*normalMatrix);
   }
   </script>
 
@@ -40,8 +38,6 @@
   <script type="application/glsl" id="mask-xyz">
   varying vec3 vNormal;
   float getMask(vec4 stpq) {
-    float intensity = pow( 0.0001 - dot( vNormal, vec3(0.0,0.0,1.0) ), 6.0); 
-    
     return 1.0;
   }
   </script>
