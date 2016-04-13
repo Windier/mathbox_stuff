@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <title>MathBox - Vector</title>
-  <script src="http://acko.net/mathbox2/0.0.5/mathbox-bundle.min.js"></script>
+  <script src="https://acko.net/mathbox2/0.0.5/mathbox-bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.min.js"></script>
-  <link rel="stylesheet" href="http://acko.net/mathbox2/0.0.5/mathbox.css">
+  <link rel="stylesheet" href="https://acko.net/mathbox2/0.0.5/mathbox.css">
   <meta name="viewport" content="initial-scale=1, maximum-scale=1">
   <style>
       #gui { position: absolute; top: 50px; left: 0px }
@@ -30,7 +30,7 @@
     // Retrieve interpolated XYZ from vertices and use as RGB color.
     // Note: gamma correction is applied with .fragment({ gamma: true }).
     vec3 rgb = vec3(stpq.xyz);
-    
+
     return vec4(rgb, 1.0);
   }
   </script>
@@ -65,7 +65,7 @@
     three = mathbox.three;
 
     three.renderer.setClearColor(new THREE.Color(0x000000), 1.0);
-    
+
     view = mathbox
     .set({
       scale: 720,
@@ -81,8 +81,8 @@
     });
 
     var sizeφ = 75;
-    var sizeθ = 75;   
-    
+    var sizeθ = 75;
+
     var remap = function (v) { return .5 * v; };
     var clamp = function (v) { return Math.max(-3, Math.min(1, v)); };
     var cos = function(x){
@@ -118,7 +118,7 @@
           ρ = cos(θ)*sin(θ)*sin(φ);
           break;
         case 5:
-          ρ = 0.75*pow(sin(θ),4)*sin(4*φ); 
+          ρ = 0.75*pow(sin(θ),4)*sin(4*φ);
       };
 
       x = ρ*cos(φ)*sin(θ);
@@ -164,7 +164,7 @@
       channels: 3,
     });
 
-    // Nest vertex/fragment transform 
+    // Nest vertex/fragment transform
     var xf = view;
     xf =
       xf
@@ -175,7 +175,7 @@
         // Work in data XYZ instead of view XYZ
         pass: 'data'
       });
-      
+
     xf =
       xf
       .shader({

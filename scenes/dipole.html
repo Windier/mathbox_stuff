@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <title>MathBox - Vector</title>
-  <script src="http://acko.net/mathbox2/0.0.5/mathbox-bundle.min.js"></script>
+  <script src="https://acko.net/mathbox2/0.0.5/mathbox-bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.min.js"></script>
-  <link rel="stylesheet" href="http://acko.net/mathbox2/0.0.5/mathbox.css">
+  <link rel="stylesheet" href="https://acko.net/mathbox2/0.0.5/mathbox.css">
   <meta name="viewport" content="initial-scale=1, maximum-scale=1">
   <style>
       #gui { position: absolute; top: 50px; left: 0px }
@@ -95,7 +95,7 @@
       f.set(3*cos(y)*cos(x-y)+0.5,3*cos(x)*sin(y-x),0.0).multiplyScalar(0.2*q);
       return f;
     };
-    
+
     view.area({
       width: 1,
       height: 1,
@@ -190,14 +190,14 @@
       height: 26,
       expr: function(emit, x, y, z, i, j, k, t, d){
           var q = 1.0;
-          for (var i = 0; i < steps_euler; ++i) {             
+          for (var i = 0; i < steps_euler; ++i) {
               var delta = props.dx * 1.0/steps_euler;
               E = field(x,y,q)
               emit(x, y);
 
               x += E.x*delta;
               y += E.y*delta;
-            } 
+            }
       },
       items:steps_euler,
       channels:2,

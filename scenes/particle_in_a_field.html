@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <title>MathBox - Vector</title>
-  <script src="http://acko.net/mathbox2/0.0.5/mathbox-bundle.min.js"></script>
+  <script src="https://acko.net/mathbox2/0.0.5/mathbox-bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.min.js"></script>
-  <link rel="stylesheet" href="http://acko.net/mathbox2/0.0.5/mathbox.css">
+  <link rel="stylesheet" href="https://acko.net/mathbox2/0.0.5/mathbox.css">
   <meta name="viewport" content="initial-scale=1, maximum-scale=1">
   <style>
       #gui { position: absolute; top: 50px; left: 0px }
@@ -73,7 +73,7 @@
       width: 0.5,
       range: [0, 1]
     });
-    
+
     view.scale({
       divide: 10,
     })
@@ -185,7 +185,7 @@
     //       bb = rgb[2];
     //       emit(rr,gg,bb, 1.0);
     //       accel_field(pos.x,pos.y, pos.z);
-    //       vel.set(vel.x + accel.x*delta_t,vel.y + accel.y*delta_t, 
+    //       vel.set(vel.x + accel.x*delta_t,vel.y + accel.y*delta_t,
     //         vel.z + accel.z*delta_t);
     //       pos.set(pos.x + vel.x*delta_t, pos.y + vel.y*delta_t,
     //         pos.z + vel.z*delta_t);
@@ -216,7 +216,7 @@
         for (var i = 0; i < iters; i++) {
           emit(pos.x, pos.y, pos.z);
           accel_field(pos.x,pos.y, pos.z);
-          vel.set(vel.x + accel.x*delta_t,vel.y + accel.y*delta_t, 
+          vel.set(vel.x + accel.x*delta_t,vel.y + accel.y*delta_t,
             vel.z + accel.z*delta_t);
           pos.set(pos.x + vel.x*delta_t, pos.y + vel.y*delta_t,
             pos.z + vel.z*delta_t);
@@ -229,7 +229,7 @@
       points: '<',
       color: 0x000000,
       // colors: "#vel_color"
-      
+
     });
 
     // view.area({
