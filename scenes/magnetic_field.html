@@ -79,8 +79,8 @@
     var ζ = new THREE.Vector3();
     var ξ_2 = new THREE.Vector3();
     var u, v, w, t;
-    var steps = 200;
-    var euler_steps = 400;
+    var steps = 10;
+    var euler_steps = 25;
     var size = 5;
     var t_min = 0.0, t_max = 1.0;
     var t_step = (t_max - t_min)/steps
@@ -94,15 +94,10 @@
       width: size,
       height: size,
       depth: size,
-      fps: 0,
 
       expr: function(emit, x, y, z, i, j, k){
 
           //d = d*props.time_scale;
-
-          x += 1.7*Math.random();
-          y += - 1.7*Math.random();
-          z += 1.7*Math.random();
 
           ζ.set(x, y, z);
 
