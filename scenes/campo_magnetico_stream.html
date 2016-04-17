@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Magnetic Field</title>
+  <script src="../../build/mathbox-bundle.js"></script>
+  <script src="../../build/dat.gui.min.js"></script>
+  <link rel="stylesheet" href="../../build/mathbox.css">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1">
+</head>
+<body>
+  <script>
+
+    var δ = 1.5;
+
+    var cos = function(x){
+      return Math.cos(x)
+    }
+    var sin = function(x){
+      return Math.sin(x)
+    }
+    var pow = function(x,y){
+      return Math.pow(x,y)
+    };
+    var sqrt = function(x){
+      return Math.sqrt(x)
+    };
+
+    // Dat GUI
+    var gui = new dat.GUI();
+    var props = {
+      a: 1.0,
+      b: 1.0,
+      dx: .03,
+      time_scale: 1.0,
+    };
+    gui.add(props, 'a').min(0).max(π).step(.001)
+    gui.add(props, 'b').min(0).max(π).step(.001)
+    gui.add(props, 'dx').min(0.0).max(1.0).step(.001)
+    gui.add(props, 'time_scale').min(0.0).max(1.00).step(.001)
+
+    mathbox = mathBox({
+      plugins: ['core', 'controls', 'cursor', 'stats'],
+      controls: {
+        klass: THREE.OrbitControls
+      },
+    });
+    three = mathbox.three;
+
+    three.camera.position.set(0, 1, 2);
+    three.renderer.setClearColor(new THREE.Color(0xFFFFFF), 1.0);
+
+    view = mathbox
+    .set({
+      focus: 3,
+    })
+    .cartesian({
+      range: [[-δ, δ], [-δ, δ], [-δ, δ]],
+      scale: [1, 1, 1],
+      rotation: [-π/2,0,-π/2]
+    });
+
+    view.scale({
+      divide: 10,
+    })
+
+    // view.grid({
+    //   divideX: 10,
+    //   divideY:10,
+    //   width: 1,
+    //   opacity: 0.2,
+    //   zBias: -5,
+    // });
+
+    var I_dir = new THREE.Vector3();
+    var B = new THREE.Vector3();
+    var dB = new THREE.Vector3();
+    var r = new THREE.Vector3();
+    var ζ = new THREE.Vector3();
+    var ξ_2 = new THREE.Vector3();
+    var u, v, w, t;
+    var steps = 200;
+    var euler_steps = 400;
+    var size = 5;
+    var t_min = 0.0, t_max = 1.0;
+    var t_step = (t_max - t_min)/steps
+
+
+    var I_path = function(x){
+      return new THREE.Vector3(cos(2*π*x), sin(2*π*x), 0.0)
+    };
+    
+    view.volume({
+      width: size,
+      height: size,
+      depth: size,
+      fps: 0,
+
+      expr: function(emit, x, y, z, i, j, k){
+
+          //d = d*props.time_scale;
+
+          x += 1.7*Math.random();
+          y += - 1.7*Math.random();
+          z += 1.7*Math.random();
+
+          ζ.set(x, y, z);
+
+          for (var k = 0; k < euler_steps; k++) {
+
+            t = t_min;
+
+            B.set(0.0, 0.0, 0.0);
+
+            ξ_1 = I_path(t);
+
+            for (var j = 0; j < steps; j++) {
+
+              ξ_2.copy(ξ_1);
+              t = t + t_step
+              ξ_1 = I_path(t)
+
+              I_dir.subVectors(ξ_2, ξ_1);
+              r.subVectors(ζ, ξ_1);
+
+              dB.crossVectors(I_dir, r).divideScalar(pow(r.length(),3));
+              B.add(dB);
+            };
+
+          B.setLength(props.dx);
+
+          ζ.add(B)
+
+          emit(ζ.x, ζ.y, ζ.z);
+
+          };
+      },
+      items:euler_steps,
+      channels:3,
+    })
+    .vector({
+      color : 0x3090FF,
+      end: true,
+      width: 0.55,
+    });
+
+    view.interval({
+      width: 100,
+      range: [0,1],
+      expr: function(emit, x, i){
+        P = I_path(x);
+        emit(P.x, P.y, P.z);
+      },
+      items: 1,
+      channels : 3,
+    })
+    .line({
+      points: '<',
+      color: 0x000000
+    })
+
+  
+
+  </script>
+</body>
+</html>
