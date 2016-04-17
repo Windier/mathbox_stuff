@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Skyrmion</title>
+  <script src="https://acko.net/mathbox2/0.0.5/mathbox-bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.min.js"></script>
+  <link rel="stylesheet" href="https://acko.net/mathbox2/0.0.5/mathbox.css">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1">
+</head>
+<body>
+
+  <script>
+
+   
+    var cos = function(x){
+      return Math.cos(x)
+    }
+    var sin = function(x){
+      return Math.sin(x)
+    }
+    var pow = function(x,y){
+      return Math.pow(x,y)
+    };
+    var sqrt = function(x){
+      return Math.sqrt(x)
+    };
+    var atan = function(x){
+      return Math.atan(x)
+    };
+
+  // GUI
+    var gui = new dat.GUI();
+    var props = {
+      a : 1.00,
+      b : 0.00,
+    };
+    gui.add(props, 'a').min(0.00).max(1.00).step(0.001);
+    gui.add(props, 'b').min(0.00).max(1.00).step(0.001);
+
+    mathbox = mathBox({
+      plugins: ['core', 'controls', 'cursor', 'stats'],
+      controls: {
+        klass: THREE.OrbitControls
+      },
+    });
+    three = mathbox.three;
+
+    three.renderer.setClearColor(new THREE.Color(0x000000), 1.0);
+
+    var size_x = 20;
+    var size_y = 20;
+
+    var Ω = new THREE.Vector3();
+
+    function field(a,b,c){
+      Ω.set(0.5, 0.0, 0.25);
+      return Ω
+    };
+
+    stereo = mathbox
+    .stereographic({
+      scale: [0.5, 0.5, 0.5],
+      bend: 1.0,
+      rotation: [π/2, 0.0, 0.0]
+    })
+    .bind({
+      bend: function(t){
+        var B = props.b;
+        return B}
+    })
+    .set({
+      focus: 3
+    })
+    .camera({
+      proxy: true,
+      position: [0, 0, 2],
+    });
+
+    view = stereo.spherical({
+      range: [[-π, π], [-π/2, π/2], [1, 2]],
+      rotation: [-π/2, 0.0, 0.0]
+    })
+    .transform({
+    })
+    .grid({
+      detailX: 128,
+      detailY: 128,
+      unitX: π/6,
+      unitY: π/6,
+      divideX: 20,
+      divideY: 20,
+    })
+
+//  Vector color based on polar angle.
+    view.volume({
+      id: "colors",
+      width: size_x,
+      height: size_y,
+      depth: 1,
+      expr: function (emit, θ, ϕ, ρ) {
+        H = 120 - sin(ϕ)*120;
+        rgb = HSVtoRGB(H, 100, 100);
+        r = rgb[0];
+        g = rgb[1];
+        b = rgb[2];
+        a = 1.0;
+        emit(r, g, b, a);
+      },
+      items: 1,
+      channels: 4,
+    });
+
+//  Vector field
+    view.volume({
+      width: size_x,
+      height: size_y,
+      depth: 1,
+      expr: function (emit, θ, ϕ, ρ, i, j, k, t, d) {
+        field(θ, ϕ, ρ);
+        Ω.setX(props.a);
+        Ω.setLength(0.2);
+
+        emit(θ, ϕ, ρ);
+        emit(θ + Ω.x, ϕ + Ω.y, ρ + Ω.z )
+      },
+      items: 2,
+      channels: 3,
+    })
+    .vector({
+      color: 0xFFFFFF,
+      colors: "#colors",
+      end: true,
+      width: 4,
+    });
+
+  
+  </script>
+</body>
+</html>
