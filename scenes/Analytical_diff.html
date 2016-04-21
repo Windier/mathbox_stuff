@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Analytical Derivative</title>
+  <script src="https://acko.net/mathbox2/0.0.5/mathbox-bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.min.js"></script>
+  <link rel="stylesheet" href="https://acko.net/mathbox2/0.0.5/mathbox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.5.1/katex.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.5.1/katex.min.js"></script>
+  <script src="/mathbox_stuff/assets/nerdamer/nerdamer.core.js"></script>
+  <script src="/mathbox_stuff/assets/nerdamer/Algebra.js"></script>
+  <script src="/mathbox_stuff/assets/nerdamer/Calculus.js"></script> 
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1">
+</head>
+<body>
+  <script>
+
+    // Define global DOM handler to format 'latex' into an HTML span
+    MathBox.DOM.Types.latex = MathBox.DOM.createClass({
+      render: function (el) {
+        this.props.innerHTML = katex.renderToString(this.children);
+        return el('span', this.props);
+      }
+    });
+
+    var δ = 5;
+
+    var update = 1;
+
+    // Dat GUI
+    var gui = new dat.GUI();
+    var props = {
+      function: 'cos(x)',
+      refresh: function(){update = 1}
+    };
+    gui.add(props, 'function')
+    gui.add(props, 'refresh')
+  
+    mathbox = mathBox({
+      plugins: ['core', 'controls', 'cursor', 'stats'],
+      controls: {
+        klass: THREE.OrbitControls
+      },
+    });
+    three = mathbox.three;
+
+    three.camera.position.set(0, 0, 3);
+    three.renderer.setClearColor(new THREE.Color(0xFFFFFF), 1.0);
+
+    view = mathbox
+    .set({
+      focus: 3,
+    })
+    .cartesian({
+      range: [[-δ, δ], [-δ, δ], [-δ, δ]],
+      scale: [1, 1, 1],
+    })
+    .axis({
+      axis:1,
+      range:[0,1]
+    })
+    .axis({
+      axis:2,
+      range:[0,1]
+    })
+
+    view.scale({
+      divide: 10,
+    })
+
+    view.grid({
+      divideX: 10,
+      divideY:10,
+      width: 1,
+      opacity: 0.2,
+      zBias: -5,
+    });
+
+    var f = nerdamer(props.function);
+    var dfdx = nerdamer('diff('+props.function+',x)');
+    var dfdx_f = dfdx.buildFunction();
+
+    var blue = [0.19, 0.56, 1.0]; 
+    var green = [0.29, 0.56, 0.12];
+    var colors = [green, blue];
+
+    // view.array({
+    //   id: 'colors',
+    //   width: 2,
+    //   expr: function(emit, i){
+    //     emit(colors[i][0],colors[i][1],colors[i][2],1.0)
+    //   },
+    //   items: 1,
+    //   channels: 4,
+    // });
+
+    view.area({
+      width: 50,
+      height: 2,
+      expr: function(emit, x, y, i, j, t, d){
+
+        if (update == 1){
+          f = nerdamer(props.function);
+          //f_f = f.buildFunction();
+          dfdx = nerdamer('diff('+ f +',x)');
+          dfdx_f = dfdx.buildFunction();
+          update = 0
+        };
+        var a,b,c;
+        //var func = [f_f, dfdx_f];
+        emit(x,dfdx_f(x,t))
+      },
+      items: 1,
+      channels: 2
+    })
+    .line({
+      //colors: '#colors',
+      color: 0x3090FF
+    });
+
+    view.area({
+      width: 1,
+      height: 1,
+      expr: function(emit, x, y, i, j, t, d){
+        emit(0, δ+1)
+      },
+      items: 1,
+      channels: 2,
+    })
+    .html({
+      width: 1,
+      height: 1,
+      expr: function (emit, el, i, j) {
+        emit(el('latex', null, '\\color{#3090FF}{f}^\\prime='+dfdx.toTeX()));
+      },
+    })
+    .dom({
+      snap: false,
+      depth: .5,
+      size: 24,
+      zoom: 1,
+      outline: 2,
+    });
+
+  </script>
+</body>
+</html>
