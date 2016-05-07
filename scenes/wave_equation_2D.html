@@ -23,6 +23,10 @@
   // Enable STPQ mapping
   #define POSITION_STPQ
 
+  varying vec3 vNormal;
+  varying vec3 vLight;
+  varying vec3 vPosition;
+
   // thanks to http://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl 
   vec3 hsv2rgb(vec3 c)
   {
@@ -31,14 +35,46 @@
       return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
   }
 
-  vec4 getColor(vec4 rgba, inout vec4 stpq) {
-    // Retrieve interpolated XYZ from vertices and use as RGB color.
-    vec3 rgb = hsv2rgb(0.32 + vec3(-clamp(0.6*stpq.z/2.0,-0.27,0.27),1.0,1.0));
-    
-    return vec4(rgb, 1.0);
+  vec3 offSpecular(vec3 color) {
+    vec3 c = 1.0 - color;
+    return 0.5 - c * c;
   }
+
+  vec4 getShadedColor(vec4 rgba, inout vec4 stpq) {
+    
+    vec3 color = hsv2rgb(0.32 + vec3(-clamp(0.6*stpq.z/2.0,-0.27,0.27),1.0,1.0));
+    vec3 color2 = offSpecular(rgba.xyz);
+
+    vec3 normal = normalize(vNormal);
+    vec3 light = normalize(vLight);
+    vec3 position = normalize(vPosition);
+    
+    float side    = gl_FrontFacing ? -1.0 : 1.0;
+    float cosine  = side * dot(normal, light);
+    float diffuse = mix(max(0.0, cosine), .5 + .5 * cosine, 1.0);
+    
+    vec3  halfLight = normalize(light + position);
+    float cosineHalf = max(0.0, side * dot(normal, halfLight));
+    float specular = pow(cosineHalf, 16.0);
+    
+    return vec4(color * (diffuse * .9 + .05) + .25 * color2 * specular, rgba.a);
+  }
+
+  //   vec4 getColor(vec4 rgba, inout vec4 stpq) {
+  //   // Retrieve interpolated XYZ from vertices and use as RGB color.
+  //   vec3 rgb = hsv2rgb(0.32 + vec3(-clamp(0.6*stpq.z/2.0,-0.27,0.27),1.0,1.0));
+    
+  //   return vec4(rgb, 1.0);
+  // }
+
   </script>
   <script>
+
+    var gui = new dat.GUI();
+    var props = {
+      time_scale : 1.00,
+    };
+    gui.add(props, 'time_scale').min(0.00).max(1.00).step(0.001);
 
     var cos = function(x){
       return Math.cos(x)
@@ -61,7 +97,7 @@
     });
     three = mathbox.three;
 
-    three.camera.position.set(1, 1, 3);
+    three.camera.position.set(0, 1, 2);
     three.renderer.setClearColor(new THREE.Color(0xFFFFFF), 1.0);
 
     var δ = 5; // range
@@ -76,31 +112,32 @@
       rotation:[-π/2, 0, -π/2]
     })
 
-    view.grid({
-      divideX: 10,
-      divideY:10,
-      width: 1,
-      opacity: 0.2,
-      zBias: -5,
-    });
+    // view.grid({
+    //   divideX: 10,
+    //   divideY:10,
+    //   width: 1,
+    //   opacity: 0.2,
+    //   zBias: -5,
+    // });
 
-   	var size = 64;
+    var size = 64;
     var c = 3.0; //  wave speed
-   	var δt = 0.0166; // time step
+    var δt = 0.0166; // time step
     var δs = 2*δ/(size); // spatial step
     var r = c*δt/δs;
 
     var u_0 = [];
     var u_1 = [];
     var u = [];
+    var data = [];
 
     for (var i = 0; i < size+1; i++) {
-      u[i] = []; u_0[i] = []; u_1[i] = [];
+      u[i] = []; u_0[i] = []; u_1[i] = [], data[i]=[[]];
       for (var j = 0; j < size+1; j++) {
 
-      	x = i*δs - δ; y = j*δs - δ;
+        x = i*δs - δ; y = j*δs - δ;
         // Initial condition
-        u_x = 3*exp(-pow(-x,2)-pow(-y,2));
+        u_x = 3*exp(-pow(-x,2)-pow(-y,2))*cos(x-y);
         u_0[i][j] = u_x;
         u_1[i][j] = u_x;
         u[i][j] = u_x;
@@ -108,46 +145,56 @@
       }
     };
 
-    view.array({
-    	expr:function(emit){
+    time = 0
+    three.on('update', function () {
+      time = three.Time.frames / 50*props.time_scale
 
-        // membrane
-        for (var i = 1; i < size; i++) {
-          for (var j = 1; j < size; j++) {
+      // membrane
+      for (var i = 1; i < size; i++) {
+        for (var j = 1; j < size; j++) {
 
-            x = i*δs - δ; y = j*δs - δ
-            // wave equation in 2D
-            u[i][j] = 2.*(1 - 2.*pow(r,2))*u_1[i][j] - u_0[i][j] + pow(r,2)*(u_1[i+1][j] + u_1[i-1][j] + u_1[i][j+1] + u_1[i][j-1]);
-
-            emit(x, y, u[i][j]);
-          }
+          x = i*δs - δ; y = j*δs - δ
+          // wave equation in 2D
+          u[i][j] = 2.*(1 - 2.*pow(r,2))*u_1[i][j] - u_0[i][j] + pow(r,2)*(u_1[i+1][j] + u_1[i-1][j] + u_1[i][j+1] + u_1[i][j-1]);
         };
+      };
+      // push every point into data[][]
+      for (var i = 0; i < size+1; i++) {
+        for (var j = 0; j < size+1; j++) {
+          x = i*δs - δ; y = j*δs - δ;
+          data[i][j] = [x,y,u[i][j]]
+        }
+      }
+      // update the last 2 states
+      for (var i = 1; i < size; i++){
+          u_0[i] = u_1[i].slice();
+          u_1[i] = u[i].slice();
+      };
+    });
+    view.matrix({
+      id: 'sampler1',
+      width: size+1,
+      height: size+1,
+      data: data,
+      items: 1,
+      channels: 3,
+    });
 
-        // update the last 2 states
-        for (var i = 1; i < size; i++){
-            u_0[i] = u_1[i].slice();
-            u_1[i] = u[i].slice();
-        };
-
-    	},
-    	items: (size-1)*(size-1),
-    	channels: 3,
+    view
+    .shader({
+      code: "#vertex-xyz"
     })
-
-    view.shader({
-        code: "#vertex-xyz"
-      })
-      .vertex({
-        pass: 'data'
-      })
-      .shader({
-        code: "#fragment-xyz"
-      })
-      .fragment({
-        gamma: true
-      })
-      .point({
-      size: 2.5,
+    .vertex({
+      pass: 'data'
+    })
+    .shader({
+      code: "#fragment-xyz"
+    })
+    .fragment({
+      gamma: true
+    })
+    .surface({
+      shaded: true,
     })
 
   </script>
