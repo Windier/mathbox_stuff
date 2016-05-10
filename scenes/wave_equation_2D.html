@@ -26,13 +26,37 @@
   varying vec3 vNormal;
   varying vec3 vLight;
   varying vec3 vPosition;
+  uniform float scale;
 
-  // thanks to http://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl 
-  vec3 hsv2rgb(vec3 c)
-  {
-      vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-      vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-      return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+  float colormap_red(float x) {
+    if (x < 0.7) {
+        return 4.0 * x - 1.5;
+    } else {
+        return -4.0 * x + 4.5;
+    }
+  }
+
+  float colormap_green(float x) {
+    if (x < 0.5) {
+        return 4.0 * x - 0.5;
+    } else {
+        return -4.0 * x + 3.5;
+    }
+  }
+
+  float colormap_blue(float x) {
+    if (x < 0.3) {
+       return 4.0 * x + 0.5;
+    } else {
+       return -4.0 * x + 2.5;
+    }
+  }
+
+  vec4 colormap(float x) {
+    float r = clamp(colormap_red(x), 0.0, 1.0);
+    float g = clamp(colormap_green(x), 0.0, 1.0);
+    float b = clamp(colormap_blue(x), 0.0, 1.0);
+    return vec4(r, g, b, 1.0);
   }
 
   vec3 offSpecular(vec3 color) {
@@ -42,7 +66,7 @@
 
   vec4 getShadedColor(vec4 rgba, inout vec4 stpq) {
     
-    vec3 color = hsv2rgb(0.32 + vec3(-clamp(0.6*stpq.z/2.0,-0.27,0.27),1.0,1.0));
+    vec3 color = colormap(scale*stpq.z+0.5).xyz;
     vec3 color2 = offSpecular(rgba.xyz);
 
     vec3 normal = normalize(vNormal);
@@ -60,34 +84,23 @@
     return vec4(color * (diffuse * .9 + .05) + .25 * color2 * specular, rgba.a);
   }
 
-  //   vec4 getColor(vec4 rgba, inout vec4 stpq) {
-  //   // Retrieve interpolated XYZ from vertices and use as RGB color.
-  //   vec3 rgb = hsv2rgb(0.32 + vec3(-clamp(0.6*stpq.z/2.0,-0.27,0.27),1.0,1.0));
-    
-  //   return vec4(rgb, 1.0);
-  // }
-
   </script>
   <script>
 
+    // Define global DOM handler to format 'latex' into an HTML span
+    MathBox.DOM.Types.latex = MathBox.DOM.createClass({
+      render: function (el) {
+        this.props.innerHTML = katex.renderToString(this.children);
+        return el('span', this.props);
+      }
+    });
+
+    var test = true;
     var gui = new dat.GUI();
     var props = {
-      time_scale : 1.00,
+      scale : 0.28,
     };
-    gui.add(props, 'time_scale').min(0.00).max(1.00).step(0.001);
-
-    var cos = function(x){
-      return Math.cos(x)
-    }
-    var sin = function(x){
-      return Math.sin(x)
-    }
-    var pow = function(x,y){
-      return Math.pow(x,y)
-    };
-    var exp = function(x){
-      return Math.exp(x)
-    };
+    gui.add(props, 'scale').min(0.00).max(1.00).step(0.001);
   
     mathbox = mathBox({
       plugins: ['core', 'controls', 'cursor', 'stats'],
@@ -112,16 +125,8 @@
       rotation:[-π/2, 0, -π/2]
     })
 
-    // view.grid({
-    //   divideX: 10,
-    //   divideY:10,
-    //   width: 1,
-    //   opacity: 0.2,
-    //   zBias: -5,
-    // });
-
     var size = 64;
-    var c = 3.0; //  wave speed
+    var c = 2.5; //  wave speed
     var δt = 0.0166; // time step
     var δs = 2*δ/(size); // spatial step
     var r = c*δt/δs;
@@ -131,40 +136,33 @@
     var u = [];
     var data = [];
 
-    for (var i = 0; i < size+1; i++) {
+    for (var i = 0; i <= size; i++) {
       u[i] = []; u_0[i] = []; u_1[i] = [], data[i]=[[]];
-      for (var j = 0; j < size+1; j++) {
-
+      for (var j = 0; j <= size; j++) {
         x = i*δs - δ; y = j*δs - δ;
         // Initial condition
-        u_x = 3*exp(-pow(-x,2)-pow(-y,2))*cos(x-y);
+        u_x = 5*exp(-pow(x,2)-pow(y,2))*sin(x+0.5*y)+exp(-pow(x-3,2)-pow(y-2,2));
         u_0[i][j] = u_x;
         u_1[i][j] = u_x;
         u[i][j] = u_x;
-
-      }
+        data[i][j] = [x, y, u_x];
+      };
     };
 
     time = 0
     three.on('update', function () {
-      time = three.Time.frames / 50*props.time_scale
+      time = three.Time.frames
 
-      // membrane
+      // loop through the inner points
       for (var i = 1; i < size; i++) {
         for (var j = 1; j < size; j++) {
-
           x = i*δs - δ; y = j*δs - δ
           // wave equation in 2D
           u[i][j] = 2.*(1 - 2.*pow(r,2))*u_1[i][j] - u_0[i][j] + pow(r,2)*(u_1[i+1][j] + u_1[i-1][j] + u_1[i][j+1] + u_1[i][j-1]);
+          // push the point into data[][]
+          data[i][j] = [x,y,u[i][j]]
         };
       };
-      // push every point into data[][]
-      for (var i = 0; i < size+1; i++) {
-        for (var j = 0; j < size+1; j++) {
-          x = i*δs - δ; y = j*δs - δ;
-          data[i][j] = [x,y,u[i][j]]
-        }
-      }
       // update the last 2 states
       for (var i = 1; i < size; i++){
           u_0[i] = u_1[i].slice();
@@ -188,13 +186,17 @@
       pass: 'data'
     })
     .shader({
-      code: "#fragment-xyz"
+      code: "#fragment-xyz",
+      scale: 0.6
+    })
+    .bind({
+      scale:function(){return props.scale},
     })
     .fragment({
       gamma: true
     })
     .surface({
-      shaded: true,
+      color: 0x3090FF
     })
 
   </script>
