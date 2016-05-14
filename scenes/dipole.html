@@ -160,39 +160,39 @@
       zBias : 5
     })
 
-    // view.area({
-    //   width: 1,
-    //   height: 1,
-    //   expr: function(emit, x, y, i, j, t, d){
+    view.area({
+      width: 1,
+      height: 1,
+      expr: function(emit, x, y, i, j, t, d){
 
-    //       emit(CM.x + r2.x + F_2.x, CM.y + r2.y + F_2.y)
-    //       emit(CM.x + r2.x, CM.y + r2.y)
+          emit(CM.x + r2.x + F_2.x, CM.y + r2.y + F_2.y)
+          emit(CM.x + r2.x, CM.y + r2.y)
 
-    //   },
-    //   items:2,
-    //   channels:2,
-    // })
-    // .vector({
-    //   start:true,
-    //   color: 'rgb(0,0,255)',
-    // })
+      },
+      items:2,
+      channels:2,
+    })
+    .vector({
+      start:true,
+      color: 'rgb(0,0,255)',
+    })
 
-    // view.area({
-    //   width: 1,
-    //   height: 1,
-    //   expr: function(emit, x, y, i, j, t, d){
+    view.area({
+      width: 1,
+      height: 1,
+      expr: function(emit, x, y, i, j, t, d){
 
-    //       emit(CM.x + r1.x, CM.y + r1.y)
-    //       emit(CM.x + r1.x + F_1.x, CM.y + r1.y + F_1.y)
+          emit(CM.x + r1.x, CM.y + r1.y)
+          emit(CM.x + r1.x + F_1.x, CM.y + r1.y + F_1.y)
 
-    //   },
-    //   items:2,
-    //   channels:2,
-    // })
-    // .vector({
-    //   end:true,
-    //   color: 'rgb(255,0,0)',
-    // })
+      },
+      items:2,
+      channels:2,
+    })
+    .vector({
+      end:true,
+      color: 'rgb(255,0,0)',
+    })
 
     var steps_euler = 15;
 
