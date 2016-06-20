@@ -1,18 +1,79 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>Divergence</title>
-  <script src="https://acko.net/mathbox2/0.0.5/mathbox-bundle.min.js"></script>
-  <script src="https://pastebin.com/raw/1vbC70iD"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.min.js"></script>
-  <link rel="stylesheet" href="https://acko.net/mathbox2/0.0.5/mathbox.css">
-  <meta name="viewport" content="initial-scale=1, maximum-scale=1">
-  <style>
-      #gui { position: absolute; top: 50px; left: 0px }
-  </style>
+	<meta charset="utf-8">
+	<title>Divergence</title>
+	<base href="amathbox_stuff/assets/" target="_blank"> 
+	<script src="mathbox/build/mathbox-bundle.js"></script>
+	<script src="dat-gui/build/dat.gui.min.js"></script>
+	<script src="functions.js"></script>
+	<link rel="stylesheet" href="mathbox/build/mathbox.css">
+	<link rel="stylesheet" href="KaTeX/dist/katex.min.css">
+	<script src="KaTeX/dist/katex.min.js"></script>
+	<script src="nerdamer/nerdamer.core.js"></script>
+	<script src="nerdamer/Algebra.js"></script>
+	<script src="nerdamer/Calculus.js"></script> 
 </head>
 <body>
+
+	<script type="application/glsl" id="vertex-xyz">
+
+		#define POSITION_STPQ;
+		uniform float size;
+		uniform float delta;
+
+		vec4 getDivSample(vec4 xyzw);
+
+		void getVertex(inout vec4 xyzw, inout vec4 stpq) {
+			// rescale and assign the result to stpq mapping
+			stpq = getDivSample(vec4(xyzw.xy*size/delta + vec2(size/2.0),xyzw.zw));
+		}
+	</script>
+
+	<script type="application/glsl" id="fragment-xyz">
+	// Enable STPQ mapping
+	#define POSITION_STPQ
+
+	float contour_scale = 0.15;
+
+	// credits to https://github.com/kbinani/glsl-colormap
+	float colormap_red(float x) {
+		if (x < 0.7) {
+				return 4.0 * x - 1.5;
+		} else {
+				return -4.0 * x + 4.5;
+		}
+	}
+	float colormap_green(float x) {
+		if (x < 0.5) {
+				return 4.0 * x - 0.5;
+		} else {
+				return -4.0 * x + 3.5;
+		}
+	}
+	float colormap_blue(float x) {
+		if (x < 0.3) {
+			 return 4.0 * x + 0.5;
+		} else {
+			 return -4.0 * x + 2.5;
+		}
+	}
+
+	vec3 colormap(float x) {
+		float r = clamp(colormap_red(x), 0.0, 1.0);
+		float g = clamp(colormap_green(x), 0.0, 1.0);
+		float b = clamp(colormap_blue(x), 0.0, 1.0);
+		return vec3(r, g, b);
+	}
+
+// Returns the fragment color
+	vec4 getColor(vec4 rgba, inout vec4 stpq) {	
+		vec3 color = colormap(contour_scale*stpq.z+0.5);
+		return vec4(color, rgba.a);
+	}
+
+	</script>
+
 	<script>
 
 		mathbox = mathBox({
@@ -29,394 +90,236 @@
 		three.camera.position.set(5, 5, 8);
 		three.renderer.setClearColor(new THREE.Color(0xFFFFFF), 1.0);
 
-// GUI
-		var text = new Text();
+		// GUI
 		var gui = new dat.GUI();
-		gui.domElement.id = 'gui';
 		var props = {
-			// P : 'Math.sin(x)',
-			// Q : 'y*Math.cos(x)',
-			// R : 'Math.cos(t+z)',
+			P : "cos(x-z+y/10)+x/5",
+			Q : "cos(y+z+x/10)+y/5",
+			R : "cos(z+x+y/10)-z/5",
 			c : 3.0,
 			contour_scale : 0.61,
 			scale : 0.40,
 			axis : 1
 		};
-		// gui.add(props, 'P');
-		// gui.add(props, 'Q');
-		// gui.add(props, 'R');
-		// gui.add(props, 'c').min(-2).max(2).step(0.001);
+		gui.add(props, 'P'); gui.add(props, 'Q'); gui.add(props, 'R');
 		gui.add(props, 'c').min(-π).max(π).step(0.001);
 		gui.add(props, 'contour_scale').min(0).max(1).step(0.001);
 		gui.add(props, 'scale').min(0).max(0.5).step(0.001);
 		gui.add(props, 'axis', { x: 1, y: 2, z: 3 } );
 
+		// cartesian range
+		var δ = π;
+		var two_δ = 2.0*δ;
+		// divisions in the range, for example: divergence_points will be
+		// a SIZE x SIZE grid, some low-resolution artifacts may appear 
+		// with SIZE < 16
+		var SIZE = 20;
+
 		view = mathbox
-
 		.set('focus', 6)
-
 		.cartesian({
-			range: [[-π, π], [-π, π], [-π, π]],
+			range: [[-δ , δ], [-δ , δ], [-δ , δ]],
 			scale: [1, 1, 1],
 			rotation: [-π/2,0,-π/2]
 		})
-
 		.axis({
 			axis : 1,
 			color: 'rgb(255, 0, 0)',
 			range:[0,1],
-			detail: 100,
 			end : true,
-			zBias: 0,
 			opacity: 0.5,
 		})
-
 		.axis({
 			axis : 2,
 			color: 'rgb(0, 255, 0)',
 			range:[0,1],
-			detail: 100,
 			end : true,
-			zBias: 0,
 			opacity: 0.5,
 		})
-
 		.axis({
 			axis : 3,
 			color: 'rgb(0, 0, 255)',
 			range:[0,1],
-			detail: 100,
 			end : true,
-			zBias: 0,
 			opacity: 0.5,
 		})
+		.grid({niceX: false, niceY: false})
+		.grid({niceX: false, niceY: false, axes:[1,3]})
+		.grid({niceX: false, niceY: false, axes:[2,3]})
 
-		// .scale({
-		//   divide: 10,
-		// })
+		var dPdx, dQdy, dRdz, dPdx_f, dQdy_f, dRdz_f
+		var P, Q, R, P_f, Q_f, R_f;
 
-		// .ticks({
-		//   classes: ['foo', 'bar'],
-		//   width: 1,
-		//   opacity: 0.0
-		// })
+		P = props.P;
+		Q = props.Q;
+		R = props.R;
 
-		// .grid({
-		//   axes: [1,2],
-		//   width: 1,
-		//   opacity: 0.7,
-		//   zBias: -10,
-		// });
+		P_f = nerdamer(P).buildFunction();
+		Q_f = nerdamer(Q).buildFunction();
+		R_f = nerdamer(R).buildFunction();
 
-		var field = function(x,y,z,t){
-	    P = Math.cos(x-z)+x/5;
-	    Q = Math.cos(y+z)+y/5;
-	    R = Math.cos(z+x)-z/5;
-			n =Math.hypot(P,Q,R);
-			return [P,Q,R,n]
-		};
+		var f = new THREE.Vector3();
 
-		var SIZE = 100;
-		var SIZEX = (props.axis === 1) ? 0: SIZE;
-		var SIZEY = (props.axis === 2) ? 0: SIZE;
-		var SIZEZ = (props.axis === 3) ? 0: SIZE;
+//	Function that outputs the vector of the vector field at the point 
+//  (x,y,z)
+		function field(x,y,z){
+			f.set(P_f(x,y,z),Q_f(x,y,z),R_f(x,y,z));
+			f.setLength(0.50);
+		}
 
-// Divergence_color
+//  Necessary derivatives
+		dPdx_f = nerdamer('diff('+ P +',x)').buildFunction();
+		dQdy_f = nerdamer('diff('+ Q +',y)').buildFunction();  
+		dRdz_f = nerdamer('diff('+ R +',z)').buildFunction();  
 
-		var divergence = view
-		.area({
-			id: 'divergence_color',
-			expr: function (emit, u, v, t){
-				var clamp = function(a,b,c)
-				{
-					return Math.max(b,Math.min(c,a));
-				};
-				var c = props.c;
-				var axis = props.axis;
-				//  Derivative step
-				var h = 0.001;
-				var contour_scale = props.contour_scale;
-
-				if(axis == 1){
-
-					f = field(c,u,v,t);
-
-					Q_old = f[1];
-					Q = field(c,u+h,v,t)[1];
-					dQ_dz = (Q - Q_old)/h;
-
-					R_old = field(c,u,v,t)[2];
-					R = field(c,u,v+h,t)[2];
-					dR_dy = (R - R_old)/h;
-
-					div = (dR_dy + dQ_dz);
-
-				}
-				else if(axis == 2){
-
-					f = field(u,c,v,t);
-
-					P_old = f[0];
-					P = field(u+h,c,v,t)[0];
-					dP_dz = (P - P_old)/h;
-
-					R_old = field(u,c,v,t)[2];
-					R = field(u,c,v+h,t)[2];
-					dR_dx = (R - R_old)/h;
-
-					div = (dR_dx + dP_dz);
-				}
-				else{
-
-					f = field(u,v,c,t);
-
-					P_old = f[0];
-					P = field(u+h,v,c,t)[0];
-					dP_dy = (P - P_old)/h;
-
-					Q_old = f[1];
-					Q = field(u,v+h,c,t)[1];
-					dQ_dx = (Q - Q_old)/h;
-
-					div = (dQ_dx + dP_dy);
-				};
-				// Corresponds to green (div F = 0)
-				H_mid = 120;
-				// The HUE is shifted from the mid (lower -> blue; higher -> red)
-				H = H_mid*div*contour_scale+H_mid;
-
-				rgb = HSVtoRGB(clamp(H,0,290),100,100);
-
-				r = rgb[0];
-				g = rgb[1];
-				b = rgb[2];
-				a = 0.65
-				emit(r,g,b,a);
-
-			},
-			items: 1,
-			channels: 4,
+//  Divergence surface
+		var divergence_points = view.area({
 			width: SIZE,
 			height: SIZE,
+			items: 1,
+			channels: 3,
+			expr: function (emit, u, v, i, j){
+				c = props.c;
+				axis = props.axis; 
+				if(axis == 1){
+					div = dQdy_f(c,u,v) + dRdz_f(c,u,v)
+				} else if(axis == 2){
+					div = dPdx_f(u,c,v) + dRdz_f(u,c,v)
+				} else {
+					div = dPdx_f(u,v,c) + dQdy_f(u,v,c)
+				};        
+				emit(u, v, div);
+			}
 		});
 
-		// Contour plot surface in (u,v) coordinates
-		view
-		.transform({})
-		// rotate the shit out of this. i couldnt manage to use switch/case
+//  This will rotate the view
+		var rotate = 	view.transform()
 		.bind({
-			rotation : function(t){
-				var axis = props.axis;
-				if(axis == 1){
+			rotation : function(){
+				axis = props.axis;
+				if(props.axis == 1){
 					angle = [0,π/2,π/2]
 				}
-				else if(axis == 2){
+				else if(props.axis == 2){
 					angle = [π/2,0,0]}
 				else{
 					angle = [0,0,0]
 				};
 				return angle
 			}
-		})
-		.area({
-			id: 'surface_points',
-			width: 2,
-			height: 2,
+		});
+
+		var plane = rotate.area({
+			width: SIZE,
+			height: SIZE,
+			items: 1,
+			channels: 3,
 			expr: function (emit, u, v, t){
 				var c = props.c;
-				emit(u, v, c, t);
-			},
-			items: 1,
-			channels: 4,
-		})
-		.surface({
-			shaded: false,
-			points: '<',
-			map: '#divergence_color',
-			color: 0xFFFFFF,
-			width: 5,
-			zBias: -2,
-			opacity:0.75,
-		});
-
-
-		var proj_size = 16;
-		var steps_euler = 10;
-
-// Projected field on plane (u,v)
-		var projected_field = view
-		.transform({
-		})
-		// rotate the shit out of this. i couldnt manage to use switch/case
-		.bind({
-			rotation : function(t){
-				var axis = props.axis;
-				if(axis == 1){
-					angle = [0,π/2,π/2]
-				}
-				else if(axis == 2){
-					angle = [π/2,0,0]}
-				else{
-					angle = [0,0,0]
-				};
-				return angle
-			},
-			position : function(t){
-				var c = props.c;
-				var axis = props.axis;
-				if(axis == 1){
-					return [c,0,0]
-				}
-				else if(axis == 2){
-					return [0,-c,0]
-				}
-				else{
-					return [0,0,c]
-				}
+				emit(u,v,c);
 			}
 		})
-		.area({
+		// The height of the vertex shader is given by the divergence_points
+		// size and delta are necessary to rescale the vertex shader because
+		// it operates on geometric coordinates X, Y = [0,1,2,...,size-1]
+		.shader({
+			code: "#vertex-xyz",
+			size: SIZE-1,
+			delta: two_δ,
+			sources: divergence_points
+		})
+		.vertex()
+		.shader({
+			code: "#fragment-xyz",
+		})
+		.fragment({
+			gamma: true
+		})
+		.bind({
+			contour_scale: props.contour_scale
+		})
+		.surface({
+			opacity: 0.90,
+			zIndex: 5,
+		});
+
+		var proj_size = 12;
+		var steps = 25;
+		var d = 1.0/steps;
+
+// Projected field on (u,v) plane
+		var projected_field = rotate.area({
 			width: proj_size,
 			height: proj_size,
-			expr: function(emit, u, v, t){
+			expr: function(emit, u, v){
+
+				var scale = props.scale;
 				var axis = props.axis;
 
-				if(axis == 1){
-
-			        for (var i = 0; i < steps_euler; ++i) {
-			            var scale = props.scale;
-			          	var c = props.c;
-			            var delta = scale * 1/steps_euler;
-			            f = field(c,u,v,t);
-			            emit(u, v);
-			            // euler step
-			            u += (f[1]/f[3])*delta;
-			            v += (f[2]/f[3])*delta;
-			          }
-
+				if (props.axis == 1){
+						for (var i = 0; i < steps; ++i) {
+							var c = props.c;
+							field(c,u,v);
+							emit(u, v, c);
+							u += f.y*d;
+							v += f.z*d;
+							}; 
+				  } else if (props.axis == 2) {
+						for (var i = 0; i < steps; ++i) {
+							var c = props.c;                  
+							field(u,c,v);
+							emit(u, v, c);
+							u += f.x*d;
+							v += f.z*d;
+							};
+				  } else { 
+					 for (var i = 0; i < steps; ++i) {
+							var c = props.c;
+							field(c,u,v);
+							emit(u, v, c);
+							u += f.y*d;
+							v += f.z*d;
+							};
 				}
-				else if(axis == 2){
-
-
-			        for (var i = 0; i < steps_euler; ++i) {
-			            var scale = props.scale;
-			          	var c = props.c;
-			            var delta = scale * 1/steps_euler;
-			            f = field(u,c,v,t);
-			            emit(u, v);
-			            // euler step
-			            u += (f[0]/f[3])*delta;
-			            v += (f[2]/f[3])*delta;
-			          }
-
-				}
-				else{
-
-			        for (var i = 0; i < steps_euler; ++i) {
-			            var scale = props.scale;
-			          	var c = props.c;
-			            var delta = scale * 1/steps_euler;
-			            f = field(u,v,c,t);
-			            emit(u, v);
-			            // euler step
-			            u += (f[0]/f[3])*delta;
-			            v += (f[1]/f[3])*delta;
-			          }
-
-				};
 
 			},
-			items: steps_euler,
-			channels: 2
-		})
-		.lerp({
-			items:64,
-			source:'<'
+			items: steps,
+			channels: 3
 		})
 		.vector({
 			end: true,
-			points: '<',
-			color: '#000000'
+			color: 0x000,
+			zIndex: 10
 
 		});
-
-//  Color
-  //   view
-  //   .volume({
-  //     id: 'field_color',
-  //     width: 12,
-  //     height: 12,
-  //     depth: 12,
-  //     expr: function (emit, x, y, z, i, j, k, t){
-  //       var c = props.c;
-  //       var axis = props.axis;
-  //       var axii = 0;
-  //       if(axis == 1){
-		//  	axii = x
-	 //    }
-		// else if(axis == 2){
-		//  	axii = -y
-		//  }
-		// else{
-		// 	axii = z
-		// };
-  //       var Heavistep = function(x,y){
-  //         if(x>=y)
-  //         {
-  //           return 1.0
-  //         }
-  //         else
-  //         {
-  //           return 0.0
-  //         }
-  //       };
-  //       r = 0/255;
-  //       g = 0/255;
-  //       b = 0/255;
-		// emit (r,g,b,0.3)
-
-  //     },
-  //     items: 1,
-  //     channels: 4,
-  //   });
-
-    var steps = 7;
 
 //  Original vector field
     view
     .volume({
-      width: 10,
-      height: 10,
-      depth: 10,
-      expr: function (emit, x, y, z, i, j, k, t){
-        var f;
-        var scale = props.scale;
+      width: 8,
+      height: 8,
+      depth: 8,
+      fps: 0,
+      expr: function (emit, x, y, z){
         for (var i = 0; i < steps; ++i) {
-            var scale = props.scale;
-            var delta = 0.67/steps;
-            f = field(x, y, z, t);
-            emit(x, y, z, t);
-            // euler step
-            x += f[0]*delta;
-            y += f[1]*delta;
-            z += f[2]*delta;
+            field(x, y, z);
+
+            emit(x, y, z);
+
+            x += f.x*d;
+            y += f.y*d;
+            z += f.z*d;
           }
       },
       items: steps,
-      channels: 4,
-    })
-    .lerp({
-      items:64,
-      source: '<'
+      channels: 3,
     })
     .vector({
       end: true,
       width: 1.5,
       points: '<',
-      // colors: '#field_color',
-      color: 'rgb(0,0,0)',
-      opacity : 0.9,
-      zBias: -20,
+      color: 0x000,
+      opacity : 0.5,
     })
 
 	</script>
