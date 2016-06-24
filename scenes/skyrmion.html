@@ -162,7 +162,7 @@
           if (Ω.z < 0.0){ test = Ω.z } else { test = 0.0 } ;
 
           data[k][0] = [θ, r, 0.0 - test];
-          data[k][1] = [θ + Ω.x , r + Ω.y, z + Ω.z - test];
+          data[k][1] = [θ - Ω.x , r + Ω.y, z + Ω.z - test];
 
           k += 1;
         };
