@@ -2,41 +2,85 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>skyrmion</title>
-  <script src="https://acko.net/mathbox2/0.0.5/mathbox-bundle.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.min.js"></script>
-  <script src="/mathbox_stuff/assets/rgb_hsv.js"></script>
-  <link rel="stylesheet" href="https://acko.net/mathbox2/0.0.5/mathbox.css">
-  <meta name="viewport" content="initial-scale=1, maximum-scale=1">
+  <title>Skyrmion</title>
+  <base href="/mathbox_stuff/assets/" target="_blank"> 
+  <script src="mathbox/build/mathbox-bundle.js"></script>
+  <script src="dat-gui/build/dat.gui.min.js"></script>
+  <script src="functions.js"></script>
+  <link rel="stylesheet" href="mathbox/build/mathbox.css"> 
 </head>
 <body>
 
-  <script>
+  <script type="application/glsl" id="vertex-xyz">
 
-    var cos = function(x){
-      return Math.cos(x)
+  // Enable STPQ mapping
+  #define POSITION_STPQ;
+
+  void getVertex(inout vec4 xyzw, inout vec4 stpq) {
+    // Store XYZ per vertex in STPQ
+    stpq = xyzw;
+  }
+  </script>
+
+  <script type="application/glsl" id="fragment-xyz">
+  // Enable STPQ mapping
+  #define POSITION_STPQ
+
+  float colormap_red(float x) {
+      if (x < 0.7) {
+        return 4.0 * x - 1.5;
+      } else {
+        return -4.0 * x + 4.5;
     }
-    var sin = function(x){
-      return Math.sin(x)
+  }
+  float colormap_green(float x) {
+    if (x < 0.5) {
+      return 4.0 * x - 0.5;
+    } else {
+      return -4.0 * x + 3.5;
     }
-    var pow = function(x,y){
-      return Math.pow(x,y)
-    };
-    var sqrt = function(x){
-      return Math.sqrt(x)
-    };
-    var atan = function(x){
-      return Math.atan(x)
-    };
+  }
+  float colormap_blue(float x) {
+    if (x < 0.3) {
+      return 4.0 * x + 0.5;
+  } else {
+      return -4.0 * x + 2.5;
+  }
+  }
+  vec4 colormap(float x) {
+    float r = clamp(colormap_red(x), 0.0, 1.0);
+    float g = clamp(colormap_green(x), 0.0, 1.0);
+    float b = clamp(colormap_blue(x), 0.0, 1.0);
+    return vec4(r, g, b, 1.0);
+  }
+
+  // uniform float time;
+  uniform float delta;
+  uniform float b;
+  uniform float opacity;
+
+  vec4 getColor(vec4 rgba, inout vec4 stpq) {
+
+    float r = stpq.y;
+    float pi = 3.14159;
+
+    vec3 color = colormap(0.7*(b*0.5*cos(r*pi/delta)+0.5)+0.15).xyz;
+
+    return vec4(color,opacity);
+  }
+
+  </script>
+
+  <script>
 
   // GUI
     var gui = new dat.GUI();
     var props = {
-      a : 1.000,
-      b : 0.000,
+      a : 0.00,
+      b : 1.00,
     };
-    gui.add(props, 'a').min(0.00).max(1.00).step(0.001);
-    gui.add(props, 'b').min(0.00).max(1.00).step(0.001);
+    gui.add(props, 'a').min(0.00).max(0.5).step(0.001);
+    gui.add(props, 'b').min(-1.00).max(1.00).step(0.001);
 
     mathbox = mathBox({
       plugins: ['core', 'controls', 'cursor', 'stats'],
@@ -46,91 +90,146 @@
     });
     three = mathbox.three;
 
-    three.renderer.setClearColor(new THREE.Color(0x000000), 1.0);
+    three.renderer.setClearColor(new THREE.Color(0xFFFFFF), 1.0);
 
-    var size_x = 20;
-    var size_y = 20;
+    var size = 7;
+    var δθ = τ;
+    var δr = 6;
+    var δz = 5.0;
 
     var Ω = new THREE.Vector3();
 
-    function field(a,b,c){
-      Ω.set(0.5, 0.0, 0.25);
-      return Ω
-    };
-
-    stereo = mathbox
-    .stereographic({
-      scale: [0.5, 0.5, 0.5],
-      bend: 1.0,
-      rotation: [π/2, 0.0, 0.0]
-    })
-    .bind({
-      bend: function(t){
-        var b = props.b;
-        return b}
-    })
+    view = mathbox
     .set({
-      focus: 3
+      focus: 3,
+    })
+    .polar({
+      bend: 1,
+      range: [[0, δθ], [0, δr], [-δz, δz]],
+      scale: [1, 1, 1],
+      helix: 0.0,
+      position: [0,0,1],
+      rotation: [-π/2, 0, -π/2]
     })
     .camera({
       proxy: true,
-      position: [0, 0, 2],
-    });
-
-    view = stereo.spherical({
-      range: [[-π, π], [-π/2, π/2], [1, 2]],
-      rotation: [-π/2, 0.0, 0.0]
+      position: [0, 2, 2],
+      lookAt: [0,0,0]
     })
     .grid({
-      detailX: 128,
-      detailY: 128,
-      unitX: π/6,
-      unitY: π/6,
-      divideX: 20,
-      divideY: 20,
+      detailX: 120,
+      detailY: 120,
+      niceX: false,
+      niceY: false,
+      width: 1,
+      opacity: 0.0,
     });
 
-//  Vector color based on polar angle.
-    view.volume({
-      id: "colors",
-      width: size_x,
-      height: size_y,
-      depth: 1,
-      expr: function (emit, θ, ϕ, ρ) {
-        H = 120 - sin(ϕ)*120;
-        rgb = HSVtoRGB(H, 100, 100);
-        r = rgb[0];
-        g = rgb[1];
-        b = rgb[2];
-        a = 1.0;
-        emit(r, g, b, a);
-      },
-      items: 1,
-      channels: 4,
-    });
+    var r_step = δr/(size-1);
+    var k;
 
-//  Vector field
-    view.volume({
-      width: size_x,
-      height: size_y,
-      depth: 1,
-      expr: function (emit, θ, ϕ, ρ, i, j, k, t, d) {
-        field(θ, ϕ, ρ);
-        Ω.setX(props.a);
-        Ω.setLength(0.2);
+    var data = [];
+    var Ω = new THREE.Vector3();
 
-        emit(θ, ϕ, ρ);
-        emit(θ + Ω.x, ϕ + Ω.y, ρ + Ω.z )
-      },
+    function field(θ,r,z){
+      a = props.a; b = props.b;
+      Ω.set(a*sin(r*π/δr),sin(r*π/δr),b*cos(r*π/δr));
+      // Ω.setLength(0.85);
+      return Ω
+    };
+
+    size_θ = function(i){return 4*(i+1)}
+
+    k = 0.0;
+    for (var i = 0; i < size; i++) {
+      for (var j = 0; j < size_θ(i); j++) {
+        data[k] = [];
+        k += 1;
+      };
+    };
+
+    three.on('update', function (){
+      k = 0.0;
+      for (var i = 0; i < size; i++) {
+        r = i*r_step; 
+        for (var j = 0; j < size_θ(i); j++) {
+          θ_step = τ/size_θ(i);
+          θ = j*θ_step;
+          z = 0.0;
+
+          field(θ,r,z);
+
+          if (Ω.z < 0.0){ test = Ω.z } else { test = 0.0 } ;
+
+          data[k][0] = [θ, r, 0.0 - test];
+          data[k][1] = [θ + Ω.x , r + Ω.y, z + Ω.z - test];
+
+          k += 1;
+        };
+      };
+    })
+
+    view.array({
       items: 2,
+      data: data,
       channels: 3,
     })
+    .shader({
+      code: "#vertex-xyz",
+    })
+    .vertex({
+      pass: 'data'
+    })
+    .shader({
+      code: "#fragment-xyz",
+      delta: δr,
+      opacity: 1.0,
+    })
+    .bind({
+      b: function(){
+        return props.b
+      }
+    })
+    .fragment({
+      gamma: true
+    })
     .vector({
-      color: 0xFFFFFF,
-      colors: "#colors",
+      color: 0x3090FF,
+      size: 5,
       end: true,
-      width: 4,
     });
+
+    view.area({
+      items: 1,
+      channels: 2,
+      width: 32,
+      height: 2,
+      expr: function(emit, θ, r, i, j, t, d){
+        emit(θ, r, 0.0)
+      }
+    })
+    .shader({
+      code: "#vertex-xyz",
+    })
+    .vertex({
+      pass: 'data'
+    })
+    .shader({
+      code: "#fragment-xyz",
+      delta: δr,
+      opacity: 0.05,
+    })
+    .bind({
+      b: function(){
+        return props.b
+      }
+    })
+    .fragment({
+      gamma: true
+    })
+    .surface({
+      zIndex: -5,
+    })
 
   </script>
 </body>
