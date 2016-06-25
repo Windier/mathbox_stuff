@@ -133,11 +133,19 @@
 
     function field(θ,r,z){
       a = props.a; b = props.b;
-      Ω.set(a*sin(r*π/δr),sin(r*π/δr),b*cos(r*π/δr));
-      // Ω.setLength(0.85);
+
+      θ_prime = a*sin(r*π/δr)/r;
+      if (r == 0) {
+        θ_prime = a*sin(r*π/δr);
+      }
+      r_prime = sin(r*π/δr);
+      z_prime = b*cos(r*π/δr);
+
+      Ω.set(θ_prime,r_prime,z_prime);
+      Ω.normalize();
       return Ω
     };
-
+    
     size_θ = function(i){return 4*(i+1)}
 
     k = 0.0;
