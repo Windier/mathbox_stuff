@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>3D Vector Field</title>
+  <script src="/mathbox_stuff/assets/mathbox/mathbox-bundle.min.js"></script>
+  <script src="/mathbox_stuff/assets/mathbox/dat.gui.min.js"></script>
+  <link rel="stylesheet" href="/mathbox_stuff/assets/mathbox/mathbox.css">
+  <link rel="stylesheet" href="/mathbox_stuff/assets/KaTeX/dist/katex.min.css">
+  <script src="/mathbox_stuff/assets/KaTeX/dist/katex.min.js"></script>
+  <script src="/mathbox_stuff/assets/nerdamer/nerdamer.core.js"></script>
+  <script src="/mathbox_stuff/assets/nerdamer/Algebra.js"></script>
+  <script src="/mathbox_stuff/assets/nerdamer/Calculus.js"></script> 
+<!-- http://silentmatt.com/javascript-expression-evaluator/ -->
+  <script src="/mathbox_stuff/parser.js"></script>
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1">
+</head>
+<body>
+
+  <script>
+
+    var  P = 'x*x*y*z';
+    var  Q = 'x*y*z*z';
+    var  R = 'z*z*z*exp(x*y)';
+
+    var length = 0.2;
+
+    var normalize = true;
+    var colorize = true;
+
+    // Dat GUI
+    var gui = new dat.GUI();
+    gui.add( this, 'P')
+    gui.add( this, 'Q')
+    gui.add( this, 'R')
+    gui.add( this, 'normalize').name('Normalize')
+    gui.add( this, 'length').min(0.1).max(1.0).name('Length')
+    gui.add( this, 'colorize').name('Colorize')
+
+    var u = Parser.parse(P).toJSFunction( ['x','y','z','t'] );
+    var v = Parser.parse(Q).toJSFunction( ['x','y','z','t'] );
+    var w = Parser.parse(R).toJSFunction( ['x','y','z','t'] );
+  
+    mathbox = mathBox({
+      plugins: ['core', 'controls', 'cursor', 'stats'],
+      controls: {
+        klass: THREE.OrbitControls
+      },
+    });
+    three = mathbox.three;
+
+    three.camera.position.set(0, 0, 3);
+    three.renderer.setClearColor(new THREE.Color(0xFFFFFF), 1.0);
+
+    var δ = 1;
+
+    view = mathbox
+    .set({
+      focus: 3,
+    })
+    .cartesian({
+      range: [[-δ, δ], [-δ, δ], [-δ, δ]],
+      scale: [1, 1, 1],
+      rotation: [-π/2, 0, -π/2]
+    })
+    .axis({
+      axis:1,
+      range:[0,1]
+    })
+    .axis({
+      axis:2,
+      range:[0,1]
+    })
+    .axis({
+      axis:3,
+      range:[0,1]
+    });
+
+    // view.scale({
+    //   divide: 10,
+    // })
+
+    // view.grid({
+    //   divideX: 10,
+    //   divideY:10,
+    //   width: 1,
+    //   opacity: 0.2,
+    //   zBias: -5,
+    // });
+
+    var r = new THREE.Vector3(0.0, 0.0, 0.0);
+
+    var vecField = view.volume({
+      width: 8,
+      height: 8,
+      depth: 8,
+      expr: function(emit, x, y, z, i, j, k, t, d){
+        r.set(u(x,y,z,t), v(x,y,z,t), w(x,y,z,t));
+        if (normalize)
+        {
+          r.setLength(length);
+        }
+        emit(x, y, z);
+        emit(x + r.x, y + r.y, z + r.z);
+      },
+      items: 2,
+      channels: 3
+    })
+    .vector({
+      color: 0x000,
+      end: true,
+    });
+
+    var updateFieldFunc = function()
+    {
+      u = Parser.parse(P).toJSFunction( ['x','y','z','t'] );
+      v = Parser.parse(Q).toJSFunction( ['x','y','z','t'] );
+      w = Parser.parse(R).toJSFunction( ['x','y','z','t'] );
+    };
+
+    var updateField = function() { updateFieldFunc(); };
+
+    gui.add( this, 'updateField' ).name("Update Field");
+
+  </script>
+</body>
+</html>
