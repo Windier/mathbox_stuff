@@ -97,23 +97,23 @@
 		var v = Parser.parse(Q).toJSFunction( ['x','y','t'] );
 	
 		mathbox = mathBox({
-			plugins: ['core', 'controls', 'cursor', 'stats'],
-			controls: {
-				klass: THREE.OrbitControls
-			},
+			plugins: ['core', 'cursor', 'stats'],
+			//controls: {
+				//klass: THREE.OrbitControls
+			//},
 		});
 		three = mathbox.three;
 
-		three.camera.position.set(0, 0, 3);
+		three.camera.position.set(0, 0, 0.65);
 		three.renderer.setClearColor(new THREE.Color(0xFFFFFF), 1.0);
 
 		// cartesian range
-		var δ = π;
+		var δ = 5*π;
 		var two_δ = 2.0*δ;
 		// divisions in the range, for example: divergence_points will be
 		// a SIZE x SIZE grid, some low-resolution artifacts may appear 
 		// with SIZE < 16
-		var SIZE = 42;
+		var SIZE = 64;
 		var contour_scale = 0.12;
 
 		var xMin = -2, xMax = 2, yMin = -2, yMax = 2;
@@ -149,11 +149,11 @@
 		// })
 
 		view.grid({
-			divideX: 15,
-			divideY: 15,
+			divideX: 63,
+			divideY: 63,
 			niceX: false,
 			niceY: false,
-			width: 1,
+			width: 0.75,
 			opacity: 0.45,
 			zBias: -90,
 		});
@@ -161,8 +161,8 @@
 		var r = new THREE.Vector2(0.0, 0.0);
 
 		var vecField = view.area({
-			width: 16,
-			height: 16,
+			width: 64,
+			height: 64,
 			expr: function(emit, x, y, i, j, t, d){
 				r.set(u(x,y,t), v(x,y,t));
 				if (normalize)
@@ -175,14 +175,11 @@
 			items: 2,
 			channels: 2
 		})
-		.lerp({
-			items: 64,
-			source: '<'
-		})
 		.vector({
 			color: 0x000,
 			end: true,
-			zOrder: 5
+			zOrder: 5,
+			width: 0.5
 		});
 
 	//  Divergence surface
@@ -275,7 +272,6 @@
 		gui.add( this, 'Q').onChange( updateFieldFunc )
 		gui.add( this, 'normalize').name('Normalize')
 		gui.add( this, 'length').min(0.1).max(1.0).name('Length')
-		gui.add( this, 'overlay').name('Overlay')
 		// gui.add( this, 'xMin' ).onChange( updateFieldFunc );
 		// gui.add( this, 'xMax' ).onChange( updateFieldFunc );
 		// gui.add( this, 'yMin' ).onChange( updateFieldFunc );
@@ -284,6 +280,7 @@
 
 		var overlayFolder = gui.addFolder('Overlay options');
 		overlayFolder.open();
+		overlayFolder.add( this, 'overlay').name('toggle')
 		overlayFolder.add( this, 'contour_scale').min(0.0).max(1.0);
 		overlayFolder.add( this, 'changeToDiv').name('Divergence');
 		overlayFolder.add( this, 'changeToCurl').name('Curl');
