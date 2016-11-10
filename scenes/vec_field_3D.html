@@ -63,30 +63,30 @@
       scale: [1, 1, 1],
       rotation: [-π/2, 0, -π/2]
     })
-    .axis({
-      axis:1,
-      range:[0,1]
-    })
-    .axis({
-      axis:2,
-      range:[0,1]
-    })
-    .axis({
-      axis:3,
-      range:[0,1]
-    });
+    // .axis({
+    //   axis:1,
+    //   range:[0,1]
+    // })
+    // .axis({
+    //   axis:2,
+    //   range:[0,1]
+    // })
+    // .axis({
+    //   axis:3,
+    //   range:[0,1]
+    // });
 
     // view.scale({
     //   divide: 10,
     // })
 
-    // view.grid({
-    //   divideX: 10,
-    //   divideY:10,
-    //   width: 1,
-    //   opacity: 0.2,
-    //   zBias: -5,
-    // });
+    view.grid({
+      divideX: 10,
+      divideY:10,
+      width: 1,
+      opacity: 0.2,
+      zBias: -5,
+    });
 
     var r = new THREE.Vector3(0.0, 0.0, 0.0);
 

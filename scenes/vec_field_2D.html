@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>2D Vector Field</title>
+	<base href="/mathbox_stuff/assets/" target="_blank"> 
+	<script src="mathbox/build/mathbox-bundle.min.js"></script>
+	<script src="dat-gui/build/dat.gui.min.js"></script>
+	<link rel="stylesheet" href="mathbox/build/mathbox.css">
+	<link rel="stylesheet" href="KaTeX/dist/katex.min.css">
+	<script src="KaTeX/dist/katex.min.js"></script>
+	<script src="nerdamer/nerdamer.core.js"></script>
+	<script src="nerdamer/Algebra.js"></script>
+	<script src="nerdamer/Calculus.js"></script> 
+	<!-- http://silentmatt.com/javascript-expression-evaluator/ -->
+	<script src="parser.js"></script>
+	<meta name="viewport" content="initial-scale=1, maximum-scale=1">
+</head>
+<body>
+
+	<script type="application/glsl" id="vertex-xyz">
+
+		#define POSITION_STPQ;
+		uniform float size;
+		uniform float delta;
+
+		vec4 getDivSample(vec4 xyzw);
+
+		void getVertex(inout vec4 xyzw, inout vec4 stpq) {
+			// rescale and assign the result to stpq mapping
+			stpq = getDivSample(vec4(xyzw.xy*size/delta + vec2(size/2.0),xyzw.zw));
+		}
+	</script>
+
+	<script type="application/glsl" id="fragment-xyz">
+	// Enable STPQ mapping
+	#define POSITION_STPQ
+
+	uniform float contour_scale;
+
+	// credits to https://github.com/kbinani/glsl-colormap
+	float colormap_red(float x) {
+		if (x < 0.7) {
+				return 4.0 * x - 1.5;
+		} else {
+				return -4.0 * x + 4.5;
+		}
+	}
+	float colormap_green(float x) {
+		if (x < 0.5) {
+				return 4.0 * x - 0.5;
+		} else {
+				return -4.0 * x + 3.5;
+		}
+	}
+	float colormap_blue(float x) {
+		if (x < 0.3) {
+			 return 4.0 * x + 0.5;
+		} else {
+			 return -4.0 * x + 2.5;
+		}
+	}
+
+	vec3 colormap(float x) {
+		float r = clamp(colormap_red(x), 0.0, 1.0);
+		float g = clamp(colormap_green(x), 0.0, 1.0);
+		float b = clamp(colormap_blue(x), 0.0, 1.0);
+		return vec3(r, g, b);
+	}
+
+	// Returns the fragment color
+	vec4 getColor(vec4 rgba, inout vec4 stpq) {	
+		vec3 color = colormap(contour_scale*stpq.z+0.5);
+		return vec4(color, rgba.a);
+	}
+
+	</script>
+
+	<script>
+
+		var  P = 'cos(y)';
+		var  Q = 'cos(x)';
+		var div, rot;
+		//  Necessary derivatives
+		dPdx = Parser.parse(nerdamer('diff('+ P +',x)').toString()).toJSFunction( ['x','y','t'] );
+		dPdy = Parser.parse(nerdamer('diff('+ P +',y)').toString()).toJSFunction( ['x','y','t'] );
+		dQdx = Parser.parse(nerdamer('diff('+ Q +',x)').toString()).toJSFunction( ['x','y','t'] ); 
+		dQdy = Parser.parse(nerdamer('diff('+ Q +',y)').toString()).toJSFunction( ['x','y','t'] );  
+
+		var length = 0.2;
+
+		var normalize = true;
+		var colorize = true;
+		var overlay = true;
+
+		var u = Parser.parse(P).toJSFunction( ['x','y','t'] );
+		var v = Parser.parse(Q).toJSFunction( ['x','y','t'] );
+	
+		mathbox = mathBox({
+			plugins: ['core', 'controls', 'cursor', 'stats'],
+			controls: {
+				klass: THREE.OrbitControls
+			},
+		});
+		three = mathbox.three;
+
+		three.camera.position.set(0, 0, 3);
+		three.renderer.setClearColor(new THREE.Color(0xFFFFFF), 1.0);
+
+		// cartesian range
+		var δ = π;
+		var two_δ = 2.0*δ;
+		// divisions in the range, for example: divergence_points will be
+		// a SIZE x SIZE grid, some low-resolution artifacts may appear 
+		// with SIZE < 16
+		var SIZE = 42;
+		var contour_scale = 0.12;
+
+		var xMin = -2, xMax = 2, yMin = -2, yMax = 2;
+
+		// domain = mathbox.cartesian({
+		// 	range: [[-δ, δ], [-δ, δ], [-δ, δ]],
+		// 	scale: [1, 1, 1],
+		// });
+
+		view = mathbox
+		.set({
+			focus: 3,
+		})
+		.cartesian({
+			range: [[-δ, δ], [-δ, δ], [-δ, δ]],
+			scale: [1, 1, 1],
+		})
+		// .axis({
+		// 	axis:1,
+		// 	range:[0,1]
+		// })
+		// .axis({
+		// 	axis:2,
+		// 	range:[0,1]
+		// })
+		// .axis({
+		// 	axis:3,
+		// 	range:[0,1]
+		// });
+
+		// view.scale({
+		//   divide: 10,
+		// })
+
+		view.grid({
+			divideX: 15,
+			divideY: 15,
+			niceX: false,
+			niceY: false,
+			width: 1,
+			opacity: 0.45,
+			zBias: -90,
+		});
+
+		var r = new THREE.Vector2(0.0, 0.0);
+
+		var vecField = view.area({
+			width: 16,
+			height: 16,
+			expr: function(emit, x, y, i, j, t, d){
+				r.set(u(x,y,t), v(x,y,t));
+				if (normalize)
+				{
+					r.setLength(length);
+				}
+				emit(x, y);
+				emit(x + r.x, y + r.y);
+			},
+			items: 2,
+			channels: 2
+		})
+		.vector({
+			color: 0x000,
+			end: true,
+			zOrder: 5
+		});
+
+	//  Divergence surface
+		var overlayPoints = view.area({
+			width: SIZE,
+			height: SIZE,
+			items: 1,
+			channels: 3
+		});
+
+		var plane = view.area({
+			width: SIZE,
+			height: SIZE,
+			items: 1,
+			channels: 3,
+			expr: function (emit, u, v, t){
+				emit(u,v,0.0);
+			}
+		})
+		// The height of the vertex shader is given by the overlayPoints
+		// size and delta are necessary to rescale the vertex shader because
+		// it operates on geometric coordinates X, Y = [0,1,2,...,SIZE-1]
+		.shader({
+			code: "#vertex-xyz",
+			size: SIZE-1,
+			delta: two_δ,
+			sources: overlayPoints
+		})
+		.vertex()
+		.shader({
+			code: "#fragment-xyz",
+		})
+		.bind({
+			contour_scale: function(){return contour_scale}
+		})
+		.fragment({
+			gamma: true,
+		})
+		.surface({
+			zBias: -15,
+		},{opacity: function(){if(overlay){return 0.75}; return 0.0}});
+
+		var updateFieldFunc = function()
+		{
+			u = Parser.parse(P).toJSFunction( ['x','y','t'] );
+			v = Parser.parse(Q).toJSFunction( ['x','y','t'] );
+
+			//domain.set("range", [[xMin, xMax], [yMin, yMax]]  );
+
+			//  Necessary derivatives
+			dPdx = Parser.parse(nerdamer('diff('+ P +',x)').toString()).toJSFunction( ['x','y','t'] );
+			dPdy = Parser.parse(nerdamer('diff('+ P +',y)').toString()).toJSFunction( ['x','y','t'] );
+			dQdx = Parser.parse(nerdamer('diff('+ Q +',x)').toString()).toJSFunction( ['x','y','t'] ); 
+			dQdy = Parser.parse(nerdamer('diff('+ Q +',y)').toString()).toJSFunction( ['x','y','t'] );  
+		};
+
+		var updateField = function() { updateFieldFunc(); };
+
+		var changeToDiv = function() 
+		{ 
+			overlayPoints.set('expr', function (emit, u, v, i, j){
+				if (overlay)
+				{
+					div = dPdx(u,v) + dQdy(u,v);
+				}
+				else
+				{
+					div = 0;
+				}    
+				emit(u, v, div); 
+			})
+		}
+		var changeToCurl = function() 
+		{ 
+			overlayPoints.set('expr', function (emit, u, v, i, j){
+				if (overlay)
+				{
+					rot = dQdx(u,v) - dPdy(u,v);
+				}
+				else
+				{
+					rot = 0;
+				}
+				emit(u, v, rot); 
+			})
+		}
+		// Dat GUI
+		var gui = new dat.GUI();
+		gui.add( this, 'P').onChange( updateFieldFunc )
+		gui.add( this, 'Q').onChange( updateFieldFunc )
+		gui.add( this, 'normalize').name('Normalize')
+		gui.add( this, 'length').min(0.1).max(1.0).name('Length')
+		gui.add( this, 'overlay').name('Overlay')
+		// gui.add( this, 'xMin' ).onChange( updateFieldFunc );
+		// gui.add( this, 'xMax' ).onChange( updateFieldFunc );
+		// gui.add( this, 'yMin' ).onChange( updateFieldFunc );
+		// gui.add( this, 'yMax' ).onChange( updateFieldFunc );
+
+
+		var overlayFolder = gui.addFolder('Overlay options');
+		overlayFolder.open();
+		overlayFolder.add( this, 'contour_scale').min(0.0).max(1.0);
+		overlayFolder.add( this, 'changeToDiv').name('Divergence');
+		overlayFolder.add( this, 'changeToCurl').name('Curl');
+		overlayFolder.close();
+
+		gui.add( this, 'updateField' ).name("Update Field");
+	</script>
+</body>
+</html>
