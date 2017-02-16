@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>MathBox - Curve</title>
+  <script src="https://acko.net/mathbox2/0.0.5/mathbox-bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.min.js"></script>
+  <link rel="stylesheet" href="https://acko.net/mathbox2/0.0.5/mathbox.css">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1">
+</head>
+<body>
+
+  <script type="application/glsl" id="vertex-xyz">
+/////////////////////////////////////////////////////////////////////
+//Parte correspondente ao colormap e ao shader
+/////////////////////////////////////////////////////////////////////
+  // Enable STPQ mapping
+  #define POSITION_STPQ;
+  uniform float oscilator;
+
+  void getVertex(inout vec4 xyzw, inout vec4 stpq) {
+    // Store XYZ per vertex in STPQ
+    stpq = xyzw*oscilator;
+  }
+  </script>
+
+  <script type="application/glsl" id="fragment-xyz">
+  // Enable STPQ mapping
+  #define POSITION_STPQ
+
+  uniform float scale;
+  uniform float scale2;
+
+  // credits to https://github.com/kbinani/glsl-colormap
+  float colormap_red(float x) {
+    if (x < 0.7) {
+        return 4.0 * x - 1.5;
+    } else {
+        return -4.0 * x + 4.5;
+    }
+  }
+  float colormap_green(float x) {
+    if (x < 0.5) {
+        return 4.0 * x - 0.5;
+    } else {
+        return -4.0 * x + 3.5;
+    }
+  }
+  float colormap_blue(float x) {
+    if (x < 0.3) {
+       return 4.0 * x + 0.5;
+    } else {
+       return -4.0 * x + 2.5;
+    }
+  }
+  vec3 colormap(float x) {
+    float r = clamp(colormap_red(x), 0.0, 1.0);
+    float g = clamp(colormap_green(x), 0.0, 1.0);
+    float b = clamp(colormap_blue(x), 0.0, 1.0);
+    return vec3(r, g, b);
+  }
+  //
+  vec4 getColor(vec4 rgba, inout vec4 stpq) {
+    vec3 color = colormap(scale*stpq.y + scale2);
+    return vec4(color, rgba.a);
+  }
+/////////////////////////////////////////////////////////////////////
+  </script>
+
+  <script>
+/////////////////////////////////////////////////////////////////////
+//Caixa de dialogos
+/////////////////////////////////////////////////////////////////////
+    var gui = new dat.GUI();
+    var props = {
+      scale : 0.2,
+      scale2: 0.5,
+      scale3: 0.0,
+    };
+    gui.add(props, 'scale').min(0.00).max(1.00).step(0.001);
+    gui.add(props, 'scale2').min(0.00).max(1.00).step(0.001);
+    gui.add(props, 'scale3').min(0.00).max(1.57079632679).step(0.001);
+/////////////////////////////////////////////////////////////////////
+
+    mathbox = mathBox({
+      plugins: ['core', 'controls', 'cursor'],
+      controls: {
+        klass: THREE.OrbitControls
+      },
+    });
+    three = mathbox.three;
+
+    three.camera.position.set(0, 0, 1.8);
+    three.renderer.setClearColor(new THREE.Color(0xFFFFFF), 1.0);
+
+    view = mathbox
+    .set({
+      focus: 3,
+    })
+    .cartesian({
+      range: [[-4, 4], [-4, 4], [-4, 4]],
+      scale: [1, 1, 1],
+    });
+
+    view.axis({
+      detail: 30,
+    });
+
+    var forma_onda = function(x,t)
+    {
+       k = 1.3;
+       omega = 1.0;
+       A = 4.0;
+       return A*Math.cos(k*x)*Math.cos(omega*t);
+    };
+
+    view.interval({
+      width: 128,
+      expr: function (emit, x, i, t) {
+        y = forma_onda(x,t);
+        emit(x, y);
+      },
+      //items: 2,
+      channels: 2,
+    })
+    .line({
+      color: 0x3090FF,
+      width: 5,
+    });
+
+    view.interval({
+      width: 32,
+      expr: function (emit, x, i, t) {
+        y = forma_onda(x,t);
+        emit(x, 0);
+        emit(x, y);
+      },
+      items: 2,
+      channels: 2,
+    })
+    .lerp({
+      items: 256,
+    })
+    .vector({
+      width: 1,
+      color: 0x000000,
+      end: true,
+      size: 5,
+    });
+
+/////////////////////////////////////////////////////////////////////
+//Tentativa de reproduzir a esfera
+/////////////////////////////////////////////////////////////////////
+
+//Parte que secarle escreveu
+    var size = 64;
+    var δϕ = 2*π;
+    var δθ = π;
+
+    // Funcao que vai colorir essa bagaça (tem q ser entre 0 a 1, fora disso é preto)
+    var f = function(ϕ,θ,t){
+      return Math.sin(θ)*Math.cos(t);
+    }
+/////////////////////////////////////////////////////////////////////
+    view
+    .area({
+      id: 'surface',
+      width: size,
+      height: size,
+      expr: function(emit, u, v, i, j, t, d){
+        r = 0.3;
+        h = 0.6;
+        angle = 0;
+        z = r*Math.cos(u);
+        y = r*Math.sin(u);
+        x = h*v;
+        z1 = r*Math.cos(u)*Math.sin(π*v);
+        y1 = r*Math.sin(u)*Math.sin(π*v);
+        x1 = r*Math.cos(π*v);
+        emit(x, y, z);
+        emit(x1+h, y1, z1);
+        emit(x1-h, y1, z1);
+      },
+      rangeX: [-π,π],
+      rangeY: [-1,1],
+      channels: 3,
+      items: 3
+    });
+
+    view
+    .shader({
+      code: "#vertex-xyz",
+    })
+    .bind({
+      oscilator: function(t){return Math.cos(t)}
+    })
+    .vertex({
+      pass: 'view'
+    })
+    .shader({
+      code: "#fragment-xyz",
+    })
+    .bind({
+      scale:function(){return props.scale},
+      scale2:function(){return props.scale2},
+    })
+    .fragment({
+      gamma: true
+    })
+    .transform()
+    .bind({
+      rotation: function(){return [0,0,props.scale3]}
+    })
+    .surface({
+      color: 0x3090FF,
+      opacity: 0.8,
+    })
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+  </script>
+</body>
+</html>

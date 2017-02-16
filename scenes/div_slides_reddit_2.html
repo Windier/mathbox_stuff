@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Divergence</title>
+		<link rel="stylesheet" href="/Users/carl00s01/bower_components/reveal.js/css/reveal.css">
+		<link rel="stylesheet" href="slides.css" id="theme">
+
+
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<div class="slides">
+
+			<section class = "text-outline" data-background-iframe = "divergence_reddit_2.html">
+				<section data-transition="fade-in fade-out"><h2>$$ (\color{#3090FF}{x}, \color{#EE0000}{y}) $$</h2></section>
+				<section data-transition="fade-in fade-out"><h2>$$ \vec{v} = (P(\color{#3090FF}{x}, \color{#EE0000}{y}),Q(\color{#3090FF}{x}, \color{#EE0000}{y})) $$</h2></section>
+				<section data-transition="fade-in fade-out">
+				<h2>$$\nabla\cdot\vec{v} = \frac{\partial P}{\partial \color{#3090FF}{x}} + \frac{\partial Q}{\partial \color{#EE0000}{y}}$$</h2>
+				</section>
+				<section data-transition="fade-in fade-out">
+					<h2>$$\nabla\cdot\vec{v} = \color{#73E873}{f}(\color{#3090FF}{x}, \color{#EE0000}{y})$$</h2>
+				</section>
+				<section data-transition="fade-in fade-out">
+					<h2>$$ \nabla\cdot\vec{v}$$</h2>
+				</section>
+			</section>
+
+			</div>
+
+		</div>
+
+		<script src="/Users/carl00s01/bower_components/reveal.js/lib/js/head.min.js"></script>
+		<script src="/Users/carl00s01/bower_components/reveal.js/js/reveal.js"></script>
+
+		<script>
+
+
+			Reveal.initialize({
+				controls: false,
+				progress: 0,
+				history: true,
+		    dependencies: [
+		        { src: '/Users/carl00s01/bower_components/reveal.js/plugin/math-katex/math-katex.js', async: true }
+		    ]
+			});
+			Reveal.configure({
+			});
+
+			var myvar = 1;
+			
+		</script>
+
+	</body>
+
+</html>

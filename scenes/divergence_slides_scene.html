@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>MathBox</title>
+  <base href="http://windier.github.io/mathbox_stuff/assets/" target="_blank">
+  <script src="mathbox/build/mathbox-bundle.js"></script>
+  <link rel="stylesheet" href="mathbox/build/mathbox.css">
+
+  <!-- http://nerdamer.com/ -->
+  <script src="nerdamer/nerdamer.core.js"></script>
+  <script src="nerdamer/Algebra.js"></script>
+  <script src="nerdamer/Calculus.js"></script> 
+
+  <!-- http://silentmatt.com/javascript-expression-evaluator/-->  
+  <script src="parser.js"></script> 
+
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1">
+</head>
+<body>
+
+  <script>
+
+    // Define global DOM handler to format 'latex' into an HTML span
+    MathBox.DOM.Types.latex = MathBox.DOM.createClass({
+      render: function (el) {
+        this.props.innerHTML = katex.renderToString(this.children);
+        return el('span', this.props);
+      }
+    });
+
+    var mathbox = mathBox({
+      plugins: ['core', 'cursor','mathbox'],
+      controls: {
+        // Orbit controls, i.e. Euler angles, with gimbal lock
+        klass: THREE.OrbitControls,
+        parameters: {
+          noKeys: true
+        },
+      },
+    });
+    if (mathbox.fallback) throw "WebGL not supported"
+
+    var three = mathbox.three;
+    three.renderer.setClearColor(new THREE.Color(0xFFFFFF), 1.0);
+
+    var δ = 10;
+
+    view = mathbox
+    .set({
+      focus: 3,
+    })
+    .camera({
+      proxy: true,
+    })
+    .cartesian({
+      range: [[-δ, δ], [-δ, δ], [-δ, δ]],
+      //scale: [1, 1, 1],
+      rotation: [-π/2, 0, -π/2]
+    });
+
+    base_url = 'http://windier.github.io/mathbox_stuff/scenes/div_slides.html#/0/';
+      // arrow keys left/right up/down
+
+      window.onkeydown = function (e) {
+        switch (e.keyCode) {
+          case 37:
+          case 38:
+            present.set('index', present.get('index') - 1);
+            window.parent.location.href = base_url + (present.get('index') - 2);
+            console.log(present.get('index'))
+            break;
+          case 39:
+          case 40:
+            present.set('index', present.get('index') + 1);
+            window.parent.location.href = base_url + (present.get('index') - 2);
+            console.log(present.get('index'))
+            console.log(parent.document.URL)
+            break;
+        }
+        //console.log(present.get('index'));
+      }
+
+  // Top level presentation
+  var present = view.present({
+      index: 3});
+
+  var P, P_f, Q, Q_f;
+
+  P = 'cos(0.31*x)*sin(0.31*y)';
+  Q = 'sin(0.31*x)*cos(0.31*y)';
+  // Can`t trust Nerdamer's buildfunction()
+  P_f = Parser.parse(P).toJSFunction( ['x','y','z'] );
+  Q_f = Parser.parse(Q).toJSFunction( ['x','y','z'] );
+
+  var f = new THREE.Vector2();
+  function field(x,y){
+    f.set(P_f(x,y),Q_f(x,y))
+    f.setLength(0.65);
+  }
+
+  var dQdy, dPdx, dPdx_f, dQdy_f;
+
+  dPdx = nerdamer('diff('+ P +',x)');
+  dQdy = nerdamer('diff('+ Q +',y)');
+  // Can`t trust Nerdamer's buildfunction()
+  dPdx_f = Parser.parse(dPdx.toString()).toJSFunction( ['x','y','z'] );
+  dQdy_f = Parser.parse(dQdy.toString()).toJSFunction( ['x','y','z'] );
+
+  var steps = 2; var d = 1/steps; 
+  var size = 100; var spacing = 2*δ/size
+  var grid_size = 31; var multiplier;
+
+  var div = [];
+  for (var i = 0; i <= size; i++) {
+    div[i] = [];
+    for (var j = 0; j <= size; j++) {
+      x = i*spacing - δ; y = j*spacing - δ;
+      div[i][j] = 4.25*(dPdx_f(x,y)+dQdy_f(x,y))
+    };
+  };
+
+  view.area({
+    id: "divv",
+    width: size,
+    height: size,
+    expr: function(emit, x, y, i, j, t, d){
+      emit(x,y,div[i][j])
+    },
+    items: 1,
+    channels: 3,
+  });
+
+  var slide =
+    present.slide({
+      from: 1,
+      to: 6})
+      .reveal()
+      .transform({
+      })
+      .step({
+        trigger: 2,
+        duration: 2.5,
+        stops: [0,0,1,0],
+        script: {
+          0: [{rotation: [0, 0, 0]}],
+          1: [{rotation: [0, 0, -π/4]}],
+        }
+      })
+      .area({
+        width: grid_size,
+        height: grid_size,
+        items: steps,
+        channels: 2,
+      }) 
+      .step({
+        duration: 1.25,
+        script: {
+          0: [{
+            expr: function (emit, x, y, i, j, t) { 
+              for (var i = 0; i < steps; i++) {
+                emit(x, y)
+              }
+            }
+            }],
+          1: [{
+            expr: function (emit, x, y, i, j, t) { 
+              for (var i = 0; i < steps; i++) {
+                field(x,y);
+                emit(x, y)
+                x += f.x*d; y += f.y*d
+              }
+
+            }
+            }],
+        }
+      })
+      .vector({
+        color: 0,
+        end: true,
+        width: 1.0,
+      })
+      .step({
+        trigger: 4,
+        duration: 4.0,
+        pace: 0.25,
+        script: {
+          0: [{zBias: 0.0}],
+          1: [{zBias: 50.0}],
+        }
+      })
+      .grid({
+        width: 1,
+        opacity: 0.45,
+        zBias: -90,
+        divideX: grid_size-1,
+        divideY: grid_size-1,
+        niceX: false,
+        niceY: false,
+      })
+      .step({
+        trigger: 2,
+        duration: 4.00,
+        stops: [0,0,1,3],
+        script: {
+          0: [{width: 1}],
+          1: [{width: 0.0}],
+          2: [{width: 0.0}],
+          3: [{width: 1.0}],
+        }
+      })
+      .camera({
+        proxy: true,
+        lookAt: [0,0]
+      })
+      .step({
+        trigger: 2,
+        duration: 2.25,
+        stops: [0,0,1,3],
+        script: {
+          0: [{position: [0, 2.25, 0]}],
+          1: [{position: [2, 2.25, 0]}],
+          3: [{position: [0, 2.5, 0]}],
+        }
+      });
+
+      slide
+      .transform()
+      .step({
+        trigger: 4,
+        duration: 1.25,
+        stops: [0,1],
+        script: {
+          0: [{position: [0,0,5.0]}],
+          1: [{position: [0,0]}],
+        }
+      })
+      .area({
+        id: "plane",
+        width: size,
+        height: size,
+        items: 1,
+        channels: 3,
+      })
+      .step({
+        trigger: 4,
+        duration: 1.25,
+        pace: 0.5,
+        stops: [0,1],
+        script: {
+          0: [{expr: function(emit, x, y, i, j, t, d){
+                emit(x,y,1.75*div[i][j])
+          }}],
+          1: [{expr: function(emit, x, y, i, j, t, d){
+                emit(x,y,0.0)
+          }}],
+        }
+      })
+      .shader({
+        code: " uniform float SIZE, DELTA;\n #define POSITION_STPQ;\n vec4 getCurlSample(vec4 xyzw);\n void getVertex(inout vec4 xyzw, inout vec4 stpq) {\n stpq = getCurlSample(vec4(xyzw.xy*(SIZE/DELTA) + vec2(SIZE/2.0), -xyzw.zw));\n }",
+        SIZE: size-1,
+        DELTA: 2*δ,
+        sources: "#divv",
+        zIndex: -1,
+      })
+      .vertex({
+        pass: 'data'
+      })
+      .shader({
+        code: "  // Enable STPQ mapping\n #define POSITION_STPQ\n varying vec3 vNormal;\n varying vec3 vLight;\n varying vec3 vPosition;\n uniform float scale;\n uniform float shade;\n float colormap_red(float x) {\n if (x < 0.7) {\n return 4.0 * x - 1.5;\n } else {\n return -4.0 * x + 4.5;\n }\n }\n float colormap_green(float x) {\n if (x < 0.5) {\n return 4.0 * x - 0.5;\n } else {\n return -4.0 * x + 3.5;\n }\n }\n float colormap_blue(float x) {\n if (x < 0.3) {\n return 4.0 * x + 0.5;\n } else {\n return -4.0 * x + 2.5;\n }\n }\n vec4 colormap(float x) {\n float r = clamp(colormap_red(x), 0.0, 1.0);\n float g = clamp(colormap_green(x), 0.0, 1.0);\n float b = clamp(colormap_blue(x), 0.0, 1.0);\n return vec4(r, g, b, 1.0);\n }\n vec3 offSpecular(vec3 color) {\n vec3 c = 1.0 - color;\n return 0.5 - c * c;\n }\n vec4 getShadedColor(vec4 rgba, inout vec4 stpq) {\n \n vec3 color = colormap(scale*stpq.z+0.5).xyz;\n vec3 color2 = offSpecular(rgba.xyz);\n vec3 normal = normalize(vNormal);\n vec3 light = normalize(vLight);\n vec3 position = normalize(vPosition);\n \n float side    = gl_FrontFacing ? -1.0 : 1.0;\n float cosine  = side * dot(normal, light);\n float diffuse = mix(max(0.0, cosine), .5 + .5 * cosine, 1.0);\n \n vec3  halfLight = normalize(light + position);\n float cosineHalf = max(0.0, side * dot(normal, halfLight));\n float specular = pow(cosineHalf, 16.0);\n \n //return vec4(color, rgba.a);\n return vec4((1.0 - shade)*color + shade*(color * (diffuse * .9 + .05) + .25 * color2 * specular), rgba.a);\n }\n",
+      })
+      .step({
+        trigger: 3,
+        duration: 1.25,
+        pace: 0.5,
+        stops: [0,0,1],
+        script: {
+          0: [{scale: 0.0, shade: 0.45}],
+          1: [{scale: 0.12, shade: 0.0}],
+        }
+      })
+      .fragment({
+        gamma: true
+      })
+      .surface({
+        color: 0x3090FF,
+        //shaded:true
+      })
+      .step({
+        trigger: 2,
+        duration: 1.25,
+        stops: [0,0,1,2],
+        script: {
+          0: [{opacity: 0.0}],
+          1: [{opacity: 1.00}],
+          2: [{opacity: 0.75}],
+        }
+      })
+      .end().end()
+
+    
+  </script>
+</body>
+</html>
