@@ -18,7 +18,11 @@
     }
 
     // Tweak Pane
+    // Tweak Pane
     var pane = new Tweakpane();
+    const settings = pane.addFolder({
+     expanded: false,
+     title: 'Settings',})
     // // Dat GUI
     // var gui = new dat.GUI();
     // var reset = true;
@@ -35,7 +39,7 @@
       reset : function() {resetFireflies()},
     };
 
-    const boidFolder = pane.addFolder({
+    const boidFolder = settings.addFolder({
       expanded: true,
       title: 'Boid parameters',
     });
@@ -44,13 +48,13 @@
     boidFolder.addInput(props, 'alignment',{min: 0, max: 1, step: 0.001, label: 'Alignment'});
     boidFolder.addInput(props, 'range',{min: 0, max: 5, step: 0.001, label: 'Range'});
 
-    const fireflyFolder = pane.addFolder({
+    const fireflyFolder = settings.addFolder({
       expanded: true,
       title: 'Firefly parameters',
     });
     fireflyFolder.addInput(props, 'sync',{min: 0, max: 2, step: 0.001, label: 'Sync'});
 
-    const colorFolder = pane.addFolder({
+    const colorFolder = settings.addFolder({
       expanded: false,
       title: 'Color',
     });
@@ -58,10 +62,10 @@
     colorFolder.addInput(props, 'defaultColor',{label: 'Default Color'});
     const backgroundColor = colorFolder.addInput(props, 'backgroundColor',{label: 'Background Color'});
 
-    pane.addSeparator();
-    // const preset = pane.exportPreset();
+    settings.addSeparator();
+    // const preset = settings.exportPreset();
     // console.log(preset);
-    const presetsFolder  = pane.addFolder({
+    const presetsFolder  = settings.addFolder({
       expanded: false, 
       title: 'Presets'
     });
@@ -105,8 +109,8 @@
       });
     });
 
-    pane.addSeparator();
-    const resetButton = pane.addButton({title: 'Reset'});
+    settings.addSeparator();
+    const resetButton = settings.addButton({title: 'Reset'});
 
     resetButton.on('click', () => {
       props.reset();
