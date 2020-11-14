@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Boids Fireflies</title>
+  <script src="https://cdn.jsdelivr.net/npm/tweakpane@1.5.6/dist/tweakpane.min.js"></script>
+  <script src="mathbox/build/mathbox-bundle.js"></script>
+  <link rel="stylesheet" href="mathbox/build/mathbox.css"> 
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1">
+</head>
+<body>
+  <script>
+
+    var clampLength = function( v, min, max ) {
+      const length = v.length();
+      v.divideScalar( length || 1 ).multiplyScalar( Math.max( min, Math.min( max, length ) ) );
+    }
+
+    // Tweak Pane
+    var pane = new Tweakpane();
+    // // Dat GUI
+    // var gui = new dat.GUI();
+    // var reset = true;
+    var props = {
+      cohesion : 2,
+      separation: 0.1,
+      alignment: 0.17,
+      range: 0.5,
+      sync: 0.5,
+      color: {r: 44, g: 191, b: 21},
+      defaultColor: {r: 50, g: 50, b: 50},
+      backgroundColor: '#000000',
+      presets: 1,
+      reset : function() {resetFireflies()},
+    };
+
+    const boidFolder = pane.addFolder({
+      expanded: true,
+      title: 'Boid parameters',
+    });
+    boidFolder.addInput(props, 'cohesion',{min: 0, max: 5, step: 0.001, label: 'Cohesion'});
+    boidFolder.addInput(props, 'separation',{min: 0, max: 1, step: 0.001, label: 'Separation'});
+    boidFolder.addInput(props, 'alignment',{min: 0, max: 1, step: 0.001, label: 'Alignment'});
+    boidFolder.addInput(props, 'range',{min: 0, max: 5, step: 0.001, label: 'Range'});
+
+    const fireflyFolder = pane.addFolder({
+      expanded: true,
+      title: 'Firefly parameters',
+    });
+    fireflyFolder.addInput(props, 'sync',{min: 0, max: 2, step: 0.001, label: 'Sync'});
+
+    const colorFolder = pane.addFolder({
+      expanded: false,
+      title: 'Color',
+    });
+    colorFolder.addInput(props, 'color',{label: 'Light color'});
+    colorFolder.addInput(props, 'defaultColor',{label: 'Default Color'});
+    const backgroundColor = colorFolder.addInput(props, 'backgroundColor',{label: 'Background Color'});
+
+    pane.addSeparator();
+    // const preset = pane.exportPreset();
+    // console.log(preset);
+    const presetsFolder  = pane.addFolder({
+      expanded: false, 
+      title: 'Presets'
+    });
+    const preset1Button = presetsFolder.addButton({title: 'Flocking'})
+    const preset2Button = presetsFolder.addButton({title: 'Blob'});
+    const preset3Button = presetsFolder.addButton({title: 'Realistic'});
+    const preset4Button = presetsFolder.addButton({title: 'Clusters'});
+    preset1Button.on('click', () => {
+      pane.importPreset({
+        "cohesion": 2,
+        "separation": 0.1,
+        "alignment": 0.170,
+        "range": 0.5
+      });
+    });
+    preset2Button.on('click', () => {
+      pane.importPreset({
+        "cohesion": 3,
+        "separation": 0.1,
+        "alignment": 0.3,
+        "range": 2,
+        "sync": 0.8,
+      });
+    });
+    preset3Button.on('click', () => {
+      pane.importPreset({
+        "cohesion": 1.9,
+        "separation": 0.6,
+        "alignment": 0.033,
+        "range": 2.12,
+        "sync": 1.13,
+      });
+    });
+    preset4Button.on('click', () => {
+      pane.importPreset({
+        "cohesion": 5,
+        "separation": 0.087,
+        "alignment": 0.02,
+        "range": 0.5,
+        "sync": 0.4,
+      });
+    });
+
+    pane.addSeparator();
+    const resetButton = pane.addButton({title: 'Reset'});
+
+    resetButton.on('click', () => {
+      props.reset();
+    });
+
+    backgroundColor.on('change', () => {
+      three.renderer.setClearColor(new THREE.Color(props.backgroundColor), 1.0);
+    })
+
+    mathbox = mathBox({
+      plugins: ['core', 'controls', 'cursor','stats'],
+      controls: {
+        klass: THREE.OrbitControls
+      },
+    });
+    three = mathbox.three;
+
+    three.camera.position.set(1, 2, 3);
+    three.renderer.setClearColor(new THREE.Color(props.backgroundColor), 1.0);
+
+    var L = 7;
+    view = mathbox.cartesian({
+      range: [[-L/2, L/2], [-L/2, L/2], [-L/2, L/2]],
+      scale: [1, 1, 1],
+    });
+
+    view.grid({ 
+      axes: [1,3],
+      origin: [0,-L/2,0,0],
+      divideX: 1,
+      divideY: 1,
+      niceX: false,
+      niceY: false,
+      width: 5,
+      opacity: 0.35})
+    .grid({ 
+      axes: [1,3],
+      origin: [0,L/2,0,0],
+      divideX: 1,
+      divideY: 1,
+      niceX: false,
+      niceY: false,
+      width: 5,
+      opacity: 0.35})
+    .grid({ 
+      axes: [1,2],
+      origin: [0,0,L/2,0],
+      divideX: 1,
+      divideY: 1,
+      niceX: false,
+      niceY: false,
+      width: 5,
+      opacity: 0.35})
+    .grid({ 
+      axes: [1,2],
+      origin: [0,0,-L/2,0],
+      divideX: 1,
+      divideY: 1,
+      niceX: false,
+      niceY: false,
+      width: 5,
+      opacity: 0.35})
+
+
+
+    var fireflyColor0 = [props.color.r/255,props.color.g/255,props.color.b/255];
+    var time = 0.0;
+
+    var numFireflies = 200;
+
+    var periodFirefly = 3; // Period in seconds
+    ω = (2*π/periodFirefly);
+
+    var firefly = new Array(numFireflies);
+    var resetFireflies = function(){
+      for (var i = 0; i < firefly.length; i++) {
+        position = new THREE.Vector3(Math.random(),Math.random(),Math.random());
+        velocity = new THREE.Vector3(Math.cos(2*π*Math.random()),Math.sin(2*π*Math.random()),0);
+        acceleration = new THREE.Vector3(0,0,0);
+        position.addScalar(-0.5).multiplyScalar(L/2);
+        velocity.multiplyScalar(0.05);
+        firefly[i] = {θ: 2*π*Math.random(), 
+                      θ_dot: ω, 
+                      pos: position,
+                      vel: velocity,
+                      acc: acceleration,
+                      ω: ω + 2*Math.random()} 
+      }
+    }
+
+    var applyBoundaries = function(firefly,L){
+      k = -0.5;
+
+      pos = firefly.pos;
+      vel = firefly.vel;
+      acc = firefly.acc;
+
+      x = pos.x; y = pos.y; z = pos.z;
+      if (Math.abs(x)>=L/2){
+        vel.add(new THREE.Vector3(k*Math.sign(x),0,0));
+      }
+      if (Math.abs(y)>=L/2){
+        vel.add(new THREE.Vector3(0,k*Math.sign(y),0));
+      }
+      if (Math.abs(z)>=L/2){
+        vel.add(new THREE.Vector3(0,0,k*Math.sign(z)));
+      }
+    }
+
+    avgVel = new THREE.Vector3(0,0,0);
+    avgCenter = new THREE.Vector3(0,0,0);
+    moveAway = new THREE.Vector3(0,0,0);
+
+    resetFireflies();
+    three.on('update', function () {
+      dt = 1/120;
+      time = three.Time.frames/60;
+
+      for (var i = 0; i < numFireflies; i++) {
+
+        avgVel.set(0,0,0);
+        avgCenter.set(0,0,0);
+        moveAway.set(0,0,0);
+
+        firefly[i].θ_dot = firefly[i].ω;
+        let numNeighbors = 0;
+        for (var j = 0; j < numFireflies; j++) {
+         if (i == j) {continue}; // Neighbor is itself
+         r = firefly[j].pos.distanceTo(firefly[i].pos);
+         if (r < props.range){
+            numNeighbors += 1;
+            avgVel.add(firefly[j].vel);
+            avgCenter.add(firefly[j].pos);
+            moveAway.add(firefly[i].pos.clone().sub(firefly[j].pos).multiplyScalar(1/(r*r)))
+          }
+          A = 100*props.sync/(r*r*r);
+          firefly[i].θ_dot += (1/numFireflies)*A*Math.sin(firefly[j].θ-firefly[i].θ);
+        }
+        if (numNeighbors){
+          avgVel.multiplyScalar(1/numNeighbors);
+          avgCenter.multiplyScalar(1/numNeighbors);
+          firefly[i].vel.add(avgCenter.sub(firefly[i].pos).multiplyScalar(props.cohesion))
+          firefly[i].vel.add(avgVel.sub(firefly[i].vel).multiplyScalar(props.alignment))
+          firefly[i].vel.add(moveAway.multiplyScalar(props.separation));
+        }
+
+        firefly[i].θ += firefly[i].θ_dot*dt;
+        applyBoundaries(firefly[i],L);
+        clampLength(firefly[i].vel,0,4);
+        firefly[i].pos.add(firefly[i].vel.clone().multiplyScalar(dt));
+      }
+
+    });
+
+    view.array({
+      id: "colors",
+      width: numFireflies,
+
+      expr: function(emit,i,time,delta) {
+
+        let scaling = 25;
+        C = Math.exp(-scaling*Math.sin(firefly[i].θ)*Math.sin(firefly[i].θ));
+        fireflyColor = fireflyColor0.map((value) => value*C);
+        let r0 = props.defaultColor.r/255; 
+        let g0 = props.defaultColor.g/255;
+        let b0 = props.defaultColor.b/255;
+        let r = props.color.r/255;
+        let g = props.color.g/255;
+        let b = props.color.b/255;
+        emit(r*C+(1-C)*r0,g*C+(1-C)*g0,b*C+(1-C)*b0,1)
+      },
+      channels: 4
+    })
+
+
+    view.interval({
+      width: numFireflies,
+      expr: function (emit, x, i, time) {
+        p = firefly[i].pos;
+        v = firefly[i].vel;
+        s = 0.1;
+        emit(p.x,p.y,p.z);
+      },
+      channels: 3,
+      items: 1
+    })
+    view.point({
+      size: 20,
+      color: 0xFFFFFF,
+      colors: '#colors'
+    })
+
+    view.interval({
+      width: numFireflies,
+      expr: function (emit, x, i, time) {
+        p = firefly[i].pos;
+        v = firefly[i].vel;
+        s = 0.1;
+        emit(p.x,p.y,p.z);
+        emit(p.x + s*v.x, p.y + s*v.y, p.z + s*v.z)
+      },
+      channels: 3,
+      items: 2
+    })
+    .lerp({
+      items: 128
+    })
+    view.vector({
+      end: true,
+      width: 20,
+      color: 0xFFFFFF,
+      colors: '#colors'
+    })
+
+
+    // view.interval({
+    //   width: numFireflies,
+    //   expr: function (emit, x, i, time) {
+    //     offsetx = 0;
+    //     offsety = L;
+    //     emit((L/4)*Math.sin(2*firefly[i].θ) + offsetx, (L/4)*Math.cos(2*firefly[i].θ) + offsety);
+    //   },
+    //   channels: 2,
+    // })
+    // .point({
+    //   size: 15,
+    //   color: 0xFFFFFF,
+    //   colors: '#colors'
+    // })
+
+
+  </script>
+</body>
+</html>
